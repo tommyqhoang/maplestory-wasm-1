@@ -20,6 +20,7 @@ Protocol:
 import asyncio
 import json
 import os
+import signal
 import argparse
 from pathlib import Path
 
@@ -32,15 +33,15 @@ except ImportError:
 # Configuration
 DEFAULT_PORT = 8765
 DEFAULT_DIRECTORY = "."
-
-# Global state
-file_cache = {}  # Cache file handles for performance
+MAX_CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB upper bound on client-supplied chunk_size
+MIN_CHUNK_SIZE = 1
 
 
 class AssetServer:
     def __init__(self, directory: str):
         self.directory = Path(directory).resolve()
         self.file_sizes = {}  # Cache file sizes
+        self._file_handles: dict = {}  # Persistent open file handles keyed by resolved path
         print(f"[AssetServer] Serving files from: {self.directory}")
 
     def get_file_path(self, filename: str) -> Path:
@@ -85,22 +86,38 @@ class AssetServer:
             return -1
         return filepath.stat().st_mtime_ns
 
+    def _get_file_handle(self, filepath: Path):
+        """Return a cached open file handle, opening it if necessary."""
+        key = str(filepath)
+        if key not in self._file_handles:
+            self._file_handles[key] = open(filepath, "rb")
+        return self._file_handles[key]
+
+    def close_all_handles(self):
+        """Close all cached file handles (call on shutdown)."""
+        for fh in self._file_handles.values():
+            try:
+                fh.close()
+            except Exception:
+                pass
+        self._file_handles.clear()
+
     def read_chunk(self, filename: str, chunk_index: int, chunk_size: int) -> bytes:
         """Read a specific chunk from a file."""
         filepath = self.get_file_path(filename)
         if not filepath.exists():
             return b""
-        
+
         file_size = self.get_file_size(filename)
         start = chunk_index * chunk_size
         end = min(start + chunk_size, file_size)
-        
+
         if start >= file_size:
             return b""
-        
-        with open(filepath, "rb") as f:
-            f.seek(start)
-            return f.read(end - start)
+
+        fh = self._get_file_handle(filepath)
+        fh.seek(start)
+        return fh.read(end - start)
 
     async def handle_message(self, websocket, message: str):
         """Handle an incoming WebSocket message."""
@@ -123,7 +140,7 @@ class AssetServer:
                 filename = data.get("file")
                 start_chunk = data.get("start", 0)
                 end_chunk = data.get("end", start_chunk)
-                chunk_size = data.get("chunk_size", 512 * 1024)
+                chunk_size = max(MIN_CHUNK_SIZE, min(int(data.get("chunk_size", 512 * 1024)), MAX_CHUNK_SIZE))
 
                 # Send all requested chunks as BINARY frames
                 # Format: [4 bytes: chunk index LE] [1 byte: filename len] [filename] [data]
@@ -152,7 +169,7 @@ class AssetServer:
                 # Single chunk request
                 filename = data.get("file")
                 chunk_idx = data.get("index", 0)
-                chunk_size = data.get("chunk_size", 512 * 1024)
+                chunk_size = max(MIN_CHUNK_SIZE, min(int(data.get("chunk_size", 512 * 1024)), MAX_CHUNK_SIZE))
                 
                 chunk_data = self.read_chunk(filename, chunk_idx, chunk_size)
                 if chunk_data:
@@ -186,7 +203,7 @@ class AssetServer:
             print(f"[AssetServer] Error handling message: {e}")
             await websocket.send(json.dumps({
                 "type": "error",
-                "message": str(e)
+                "message": "Internal server error"
             }))
 
     async def handler(self, websocket):
@@ -205,18 +222,28 @@ class AssetServer:
 
 async def main(port: int, directory: str):
     server = AssetServer(directory)
-    
+
     print(f"[AssetServer] Starting WebSocket server on port {port}")
     print(f"[AssetServer] Connect with: ws://localhost:{port}")
-    
-    async with websockets.serve(
-        server.handler,
-        "0.0.0.0",
-        port,
-        max_size=50 * 1024 * 1024,  # 50MB max message size
-        compression=None  # Disable compression for speed
-    ):
-        await asyncio.Future()  # Run forever
+
+    stop_event = asyncio.Event()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, stop_event.set)
+
+    try:
+        async with websockets.serve(
+            server.handler,
+            "0.0.0.0",
+            port,
+            max_size=50 * 1024 * 1024,  # 50MB max message size
+            compression=None,  # Disable compression for speed
+        ):
+            await stop_event.wait()
+    finally:
+        server.close_all_handles()
+        print("\n[AssetServer] Shutting down...")
 
 
 if __name__ == "__main__":
@@ -225,7 +252,4 @@ if __name__ == "__main__":
     parser.add_argument("--directory", type=str, default=DEFAULT_DIRECTORY, help=f"Directory to serve files from (default: {DEFAULT_DIRECTORY})")
     args = parser.parse_args()
 
-    try:
-        asyncio.run(main(args.port, args.directory))
-    except KeyboardInterrupt:
-        print("\n[AssetServer] Shutting down...")
+    asyncio.run(main(args.port, args.directory))

@@ -32,6 +32,7 @@ var LazyFS = {
 	wsConnected: false,
 	wsConnecting: false,
 	wsQueue: [], // Queued requests while connecting
+	WS_QUEUE_MAX: 1000, // Safety cap — prevents unbounded growth on permanent connection failure
 
 	// Pending requests: Map<requestId, {resolve, reject}>
 	pendingRequests: new Map(),
@@ -274,6 +275,13 @@ var LazyFS = {
 					console.log('[LazyFS] WebSocket disconnected');
 					this.wsConnected = false;
 					this.ws = null;
+					// Reject all in-flight requests so callers get an error immediately
+					// rather than hanging until their individual timeouts fire.
+					const err = new Error('WebSocket disconnected');
+					for (const [key, pending] of this.pendingRequests) {
+						this.pendingRequests.delete(key);
+						pending.reject(err);
+					}
 				};
 			} catch (e) {
 				console.error('[LazyFS] Failed to create WebSocket:', e);
@@ -291,7 +299,11 @@ var LazyFS = {
 		if (this.wsConnected && this.ws) {
 			this.ws.send(msgStr);
 		} else {
-			this.wsQueue.push(msgStr);
+			if (this.wsQueue.length < this.WS_QUEUE_MAX) {
+				this.wsQueue.push(msgStr);
+			} else {
+				console.warn('[LazyFS] wsQueue full — dropping request');
+			}
 			this.connect();
 		}
 	},
@@ -332,6 +344,32 @@ var LazyFS = {
 				}
 			} else if (msg.type === 'error') {
 				console.error('[LazyFS] Server error:', msg.message);
+				// Reject the specific pending request that triggered this error, if known.
+				// The server echoes 'file' for chunk/size errors; fall back to rejecting all.
+				const serverErr = new Error(`Server error: ${msg.message}`);
+				if (msg.file) {
+					const candidates = [
+						`size:${msg.file}`,
+						`batch:${msg.file}:${msg.start}:${msg.end}`,
+						`chunk:${msg.file}:${msg.index}`,
+					];
+					let rejected = false;
+					for (const key of candidates) {
+						const pending = this.pendingRequests.get(key);
+						if (pending) {
+							this.pendingRequests.delete(key);
+							pending.reject(serverErr);
+							rejected = true;
+						}
+					}
+					if (!rejected) {
+						// Unknown which request triggered it — reject all to unblock callers.
+						for (const [key, pending] of this.pendingRequests) {
+							this.pendingRequests.delete(key);
+							pending.reject(serverErr);
+						}
+					}
+				}
 			}
 		} catch (e) {
 			console.error('[LazyFS] Error parsing message:', e);

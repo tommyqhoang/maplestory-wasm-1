@@ -40,8 +40,11 @@ if(EMSCRIPTEN)
         "--embed-file=${CMAKE_CURRENT_SOURCE_DIR}/fonts/Arial/Arial.ttf@fonts/Arial/Arial.ttf"
         "--embed-file=${CMAKE_CURRENT_SOURCE_DIR}/fonts/Arial/Arial-Bold.ttf@fonts/Arial/Arial-Bold.ttf"
         --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/LazyFS/lazyfs.js
-        -sASSERTIONS=1
     )
+
+    if(DEBUG_SYMBOLS)
+        add_link_options(-sASSERTIONS=1)
+    endif()
     
     if(DEBUG_SYMBOLS)
         add_compile_options(-g)

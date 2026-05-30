@@ -15,6 +15,7 @@ Default configuration:
 """
 
 import asyncio
+import signal
 import websockets
 import argparse
 import sys
@@ -35,7 +36,12 @@ class MapleStoryProxy:
         try:
             # Read first message to get target TCP server address
             print(f"[WebSocket] Waiting for target address...")
-            target_msg = await websocket.recv()
+            try:
+                target_msg = await asyncio.wait_for(websocket.recv(), timeout=10.0)
+            except asyncio.TimeoutError:
+                print(f"[WebSocket] Timed out waiting for target from {client_addr}")
+                await websocket.close()
+                return
             
             if isinstance(target_msg, bytes):
                 target_str = target_msg.decode('utf-8')
@@ -163,13 +169,17 @@ async def main():
     print("=" * 60)
     print("Waiting for connections...")
 
+    stop_event = asyncio.Event()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, stop_event.set)
+
     async with websockets.serve(proxy.handle_client, "0.0.0.0", args.ws_port):
-        await asyncio.Future()  # Run forever
+        await stop_event.wait()
+
+    print("\n[Server] Shutting down...")
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n[Server] Shutting down...")
-        sys.exit(0)
+    asyncio.run(main())
