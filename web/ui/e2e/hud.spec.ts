@@ -29,7 +29,8 @@ function resetLoginFlag(): void {
 async function loginToIngame(page: Page): Promise<void> {
   await page.goto("/");
 
-  // Wait for the WASM runtime to expose its canvas-size export.
+  // The login form is DOM; submitting drives the engine bridge, so wait for
+  // the WASM runtime before interacting.
   await page.waitForFunction(
     () =>
       typeof (window as unknown as WasmWindow).Module?._wasm_set_canvas_size ===
@@ -38,39 +39,31 @@ async function loginToIngame(page: Page): Promise<void> {
     { timeout: 40000 },
   );
 
-  // Wait for the loading overlay to be removed (engine init + CSS fade).
-  await page.locator("#loading").waitFor({ state: "detached", timeout: 15000 });
+  // DOM login form.
+  await page.locator('[data-testid="login-account"]').fill("wasmteswasmt");
+  await page.locator('[data-testid="login-password"]').fill("test1234");
+  await page.locator('[data-testid="login-submit"]').click();
 
-  // Allow the login screen to fully render.
-  await page.waitForTimeout(2000);
+  // World select.
+  const world = page.locator('[data-testid^="world-"]').first();
+  await expect(world).toBeVisible({ timeout: 20000 });
+  await world.click();
 
-  const L = 40,
-    S = 1.5;
-  const g = (x: number, y: number): [number, number] => [L + x * S, y * S];
+  // Channel select.
+  const channel = page.locator('[data-testid^="channel-"]').first();
+  await expect(channel).toBeVisible({ timeout: 10000 });
+  await channel.click();
 
-  // Click the account-name field and type credentials.
-  await page.mouse.click(...g(390, 261));
-  await page.keyboard.type("wasmteswasmt", { delay: 35 });
-  await page.keyboard.press("Tab");
-  await page.keyboard.type("test1234", { delay: 35 });
-  await page.keyboard.press("Enter");
+  // Character select.
+  const char = page.locator('[data-testid^="char-"]').first();
+  await expect(char).toBeVisible({ timeout: 20000 });
+  await char.click();
+  await page.locator('[data-testid="char-start"]').click();
 
-  // Wait for world-select screen (or error dialog to clear).
-  await page.waitForTimeout(2500);
-
-  // Click world "Go" button.
-  await page.mouse.click(770, 312);
-  await page.waitForTimeout(2500);
-
-  // Click character slot.
-  await page.mouse.click(...g(130, 210));
-  await page.waitForTimeout(700);
-
-  // Click "Start" / enter game.
-  await page.mouse.click(...g(626, 392));
-
-  // Give the engine time to load the map and push the first stats update.
-  await page.waitForTimeout(6000);
+  // HUD HP confirms in-game state.
+  await expect(page.locator('[data-testid="hud-hp"]')).toBeVisible({
+    timeout: 30000,
+  });
 }
 
 // ---------------------------------------------------------------------------
