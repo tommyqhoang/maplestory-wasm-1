@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "messages": [
+    { "type": "ping",  "dir": "in",  "fields": [{ "name": "nonce", "type": "int" }] },
+    { "type": "pong",  "dir": "out", "fields": [{ "name": "nonce", "type": "int" }] },
+    { "type": "scene", "dir": "out", "fields": [{ "name": "name", "type": "string" }] },
+    { "type": "stats", "dir": "out", "fields": [
+        { "name": "hp", "type": "int" }, { "name": "maxHp", "type": "int" },
+        { "name": "mp", "type": "int" }, { "name": "maxMp", "type": "int" },
+        { "name": "level", "type": "int" }, { "name": "exp", "type": "long" }
+    ] }
+  ]
+}
