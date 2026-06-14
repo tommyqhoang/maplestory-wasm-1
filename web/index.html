@@ -267,6 +267,46 @@
             console.error('[post-exception status] Exception thrown, see JavaScript console');
         };
 
+        // WebGL preflight. The engine renders entirely through WebGL; if the
+        // browser can't hand out a context (e.g. Brave's GPU process crash-loops
+        // on the Vulkan/Wayland path on some Linux setups) the canvas stays black
+        // with only a cryptic "Failed to create window" in the console. Detect it
+        // up front and show actionable guidance instead.
+        function webglAvailable() {
+            try {
+                var c = document.createElement('canvas');
+                return !!(c.getContext('webgl2') || c.getContext('webgl') ||
+                          c.getContext('experimental-webgl'));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function showWebglError() {
+            var overlay = document.getElementById('loading');
+            if (!overlay) {
+                return;
+            }
+            overlay.classList.remove('hidden');
+            overlay.innerHTML =
+                '<div class="logo">Maple<span>Story</span></div>' +
+                '<div style="max-width:540px;text-align:center;line-height:1.6;color:#cdd6e4;font-size:14px">' +
+                '<p style="font-size:18px;color:#fff;margin-bottom:14px">Your browser couldn’t start WebGL</p>' +
+                '<p>The game renders with hardware-accelerated WebGL, which this browser isn’t currently providing. ' +
+                'In <b>Brave</b> on Linux this is usually the GPU process failing on Vulkan. To fix it:</p>' +
+                '<p style="text-align:left;display:inline-block;margin-top:10px">' +
+                '1. Open <b>brave://settings/system</b> and turn <b>off</b> “Use&nbsp;graphics&nbsp;acceleration when available”, <i>or</i><br>' +
+                '2. Open <b>brave://flags</b>, set <b>Vulkan</b> to <b>Disabled</b>, <i>or</i><br>' +
+                '3. Launch Brave with <code>--disable-features=Vulkan</code> (or <code>--ozone-platform=x11</code>).<br>' +
+                '<span style="color:#8b96a8">Then fully quit and reopen Brave. Verify at <b>brave://gpu</b> that WebGL is enabled.</span></p>' +
+                '</div>';
+        }
+
+        if (!webglAvailable()) {
+            showWebglError();
+            throw new Error('WebGL unavailable — aborting engine load.');
+        }
+
         // Fetch configuration before loading the client
         fetch('/web/config.json')
             .then(response => {

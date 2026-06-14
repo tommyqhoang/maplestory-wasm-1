@@ -59,16 +59,13 @@ namespace jrc
         }
 
 #ifdef MS_PLATFORM_WASM
-        // Pick the supersampling factor from the largest surface this display
-        // can show; it is fixed for the session since fonts bake into the atlas.
-        supersample = static_cast<GLshort>(EM_ASM_INT({
-            var dpr = window.devicePixelRatio || 1;
-            var sw = (window.screen && window.screen.width) ? window.screen.width : 800;
-            var sh = (window.screen && window.screen.height) ? window.screen.height : 600;
-            // The canvas is aspect-fitted, so the smaller ratio is the real scale.
-            var scale = Math.min(sw * dpr / 800.0, sh * dpr / 600.0);
-            return Math.min(4, Math.max(1, Math.ceil(scale)));
-        }));
+        // Start at the highest quality: render the scene supersampled at the
+        // maximum factor so sprites and text stay crisp when upscaled to any
+        // display. Fixed for the session since fonts bake into the atlas.
+        // (Previously this scaled down to match the screen, which left smaller
+        // or low-DPI displays rendering at a soft 1x-2x.)
+        constexpr GLshort MAX_SUPERSAMPLE = 4;
+        supersample = MAX_SUPERSAMPLE;
 #endif
 
         GLint result = GL_FALSE;
