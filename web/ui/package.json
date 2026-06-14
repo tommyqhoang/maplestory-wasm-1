@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "lint": "eslint . && prettier --check .",
     "gen:protocol": "node scripts/gen-cpp-protocol.mjs",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "e2e": "playwright test"
   },
   "dependencies": {
