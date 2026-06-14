@@ -49,6 +49,12 @@ namespace jrc
             const std::string& text
         );
 
+        // Drives the dialogue from the DOM modal (MapleBridge). Mirrors the
+        // in-canvas button -> packet mapping using the tracked lastmsg/mode, so
+        // both paths share the same send logic. action is one of:
+        // next/prev/ok/yes/no/accept/decline/select/submitText/close.
+        void respond(const std::string& action, int32_t selection, const std::string& text);
+
     protected:
         Button::State button_pressed(uint16_t buttonid) override;
 
@@ -61,6 +67,24 @@ namespace jrc
             SELECTION,
             UNKNOWN
         };
+
+        // Shared send helpers used by both the in-canvas buttons and respond().
+        // Each terminal send also dismisses the dialog (active=false) and pushes
+        // an inactive state over the bridge so the DOM modal closes in sync.
+        void send_response(int8_t response);
+        void send_selection_response(int32_t selection);
+        void send_text_response(const std::string& response);
+        void send_close();
+        // Cycles the highlighted SELECTION option by delta (+1 next, -1 prev).
+        void cycle_selection(int32_t delta);
+        // Dismisses the dialog and emits an inactive state to the DOM modal.
+        void dismiss();
+        // Pushes the current (active) dialog state to the DOM modal via UiBridge.
+        void emit_dialog_state(int32_t npcid) const;
+        // Maps the resolved DialogueMode + navigation buttons to a stable string
+        // the DOM modal understands (ok/next/nextprev/yesno/acceptdecline/
+        // textentry/selection).
+        std::string mode_string() const;
 
         void parse_selections(const std::string& text, std::string& rendered_text);
         static std::string strip_npc_tokens(const std::string& text);
@@ -97,6 +121,9 @@ namespace jrc
         bool slider;
 
         int8_t type;
+        int32_t npc_id;
+        bool has_prev_button;
+        bool has_next_button;
         bool end_confirms_dialogue;
         std::string prompttext;
         std::vector<std::string> selection_texts;

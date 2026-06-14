@@ -19,6 +19,8 @@
 
 #include "../Components/MapleButton.h"
 
+#include "../UiBridge.h"
+
 #include "../../Console.h"
 #include "../../Constants.h"
 #include "../../Data/ItemData.h"
@@ -46,7 +48,6 @@ namespace jrc
         constexpr int16_t DIALOG_TEXT_X = 156;
         constexpr int16_t DIALOG_TEXT_Y_OFFSET = 16;
         constexpr int16_t OPTION_VERTICAL_GAP = 2;
-        constexpr int16_t HOVER_UNDERLINE_THICKNESS = 1;
         constexpr int8_t SELECTION_DIALOGUE_TYPE = 4;
         constexpr int8_t LEGACY_SELECTION_DIALOGUE_TYPE = 5;
 
@@ -294,6 +295,9 @@ namespace jrc
           dialogue_mode(DialogueMode::UNKNOWN),
           slider(false),
           type(0),
+          npc_id(0),
+          has_prev_button(false),
+          has_next_button(false),
           end_confirms_dialogue(false),
           selected(0),
           hovered_selection(-1),
@@ -344,6 +348,14 @@ namespace jrc
 
     void UINpcTalk::draw(float inter) const
     {
+#ifdef MS_PLATFORM_WASM
+        // The DOM NPC dialogue modal renders this dialog on the web client; the
+        // in-canvas chrome is suppressed to avoid a double dialog. Logic/update/
+        // respond stay alive so the bridge drives the same dialogue state.
+        (void)inter;
+        return;
+#else
+        constexpr int16_t HOVER_UNDERLINE_THICKNESS = 1;
         Point<int16_t> drawpos = position;
         top.draw(drawpos);
         drawpos.shift_y(top.height());
@@ -400,6 +412,7 @@ namespace jrc
                     option_y += OPTION_VERTICAL_GAP;
             }
         }
+#endif
     }
 
     bool UINpcTalk::is_in_range(Point<int16_t> cursorpos) const
@@ -425,6 +438,55 @@ namespace jrc
         return false;
     }
 
+    void UINpcTalk::send_response(int8_t response)
+    {
+        NpcTalkMorePacket(type, response).dispatch();
+        dismiss();
+    }
+
+    void UINpcTalk::send_selection_response(int32_t selection)
+    {
+        NpcTalkMorePacket::selection(type, selection).dispatch();
+        dismiss();
+    }
+
+    void UINpcTalk::send_text_response(const std::string& response)
+    {
+        NpcTalkMorePacket(response).dispatch();
+        dismiss();
+    }
+
+    void UINpcTalk::send_close()
+    {
+        if (end_confirms_dialogue)
+        {
+            NpcTalkMorePacket(type, 1).dispatch();
+        }
+        else
+        {
+            NpcTalkMorePacket::close(type).dispatch();
+        }
+        dismiss();
+    }
+
+    void UINpcTalk::cycle_selection(int32_t delta)
+    {
+        if (selections.empty())
+        {
+            return;
+        }
+
+        int32_t count = static_cast<int32_t>(selections.size());
+        selected = ((selected + delta) % count + count) % count;
+        refresh_selection_styles();
+    }
+
+    void UINpcTalk::dismiss()
+    {
+        active = false;
+        UiBridge::get().emit_npc_dialog(false, npc_id, std::string(), std::string(), {});
+    }
+
     Button::State UINpcTalk::button_pressed(uint16_t buttonid)
     {
         switch (buttonid)
@@ -432,74 +494,155 @@ namespace jrc
         case OK:
             if (dialogue_mode == DialogueMode::SELECTION)
             {
-                int32_t selection = selections.empty() ? 0 : selections[selected];
-                NpcTalkMorePacket::selection(type, selection).dispatch();
-                active = false;
+                send_selection_response(selections.empty() ? 0 : selections[selected]);
             }
             else
             {
-                NpcTalkMorePacket(type, 1).dispatch();
-                active = false;
+                send_response(1);
             }
             break;
         case NEXT:
             if (dialogue_mode == DialogueMode::SELECTION)
             {
-                if (!selections.empty())
-                {
-                    selected = (selected + 1) % static_cast<int32_t>(selections.size());
-                    refresh_selection_styles();
-                }
+                cycle_selection(1);
             }
             else if (dialogue_mode == DialogueMode::TEXT)
             {
-                NpcTalkMorePacket(type, 1).dispatch();
-                active = false;
+                send_response(1);
             }
             break;
         case PREV:
             if (dialogue_mode == DialogueMode::SELECTION)
             {
-                if (!selections.empty())
-                {
-                    selected = (selected + static_cast<int32_t>(selections.size()) - 1)
-                        % static_cast<int32_t>(selections.size());
-                    refresh_selection_styles();
-                }
+                cycle_selection(-1);
             }
             else if (dialogue_mode == DialogueMode::TEXT)
             {
-                NpcTalkMorePacket(type, 0).dispatch();
-                active = false;
+                send_response(0);
             }
             break;
         case YES:
             if (dialogue_mode == DialogueMode::YES_NO || dialogue_mode == DialogueMode::ACCEPT_DECLINE)
             {
-                NpcTalkMorePacket(type, 1).dispatch();
-                active = false;
+                send_response(1);
             }
             break;
         case NO:
             if (dialogue_mode == DialogueMode::YES_NO || dialogue_mode == DialogueMode::ACCEPT_DECLINE)
             {
-                NpcTalkMorePacket(type, 0).dispatch();
-                active = false;
+                send_response(0);
             }
             break;
         case END:
-            if (end_confirms_dialogue)
-            {
-                NpcTalkMorePacket(type, 1).dispatch();
-            }
-            else
-            {
-                NpcTalkMorePacket::close(type).dispatch();
-            }
-            active = false;
+            send_close();
             break;
         }
         return Button::PRESSED;
+    }
+
+    void UINpcTalk::respond(const std::string& action, int32_t selection, const std::string& text)
+    {
+        if (action == "next")
+        {
+            if (dialogue_mode == DialogueMode::SELECTION)
+            {
+                cycle_selection(1);
+            }
+            else
+            {
+                send_response(1);
+            }
+        }
+        else if (action == "prev")
+        {
+            if (dialogue_mode == DialogueMode::SELECTION)
+            {
+                cycle_selection(-1);
+            }
+            else
+            {
+                send_response(0);
+            }
+        }
+        else if (action == "ok")
+        {
+            if (dialogue_mode == DialogueMode::SELECTION)
+            {
+                send_selection_response(selections.empty() ? 0 : selections[selected]);
+            }
+            else
+            {
+                send_response(1);
+            }
+        }
+        else if (action == "yes" || action == "accept")
+        {
+            send_response(1);
+        }
+        else if (action == "no" || action == "decline")
+        {
+            send_response(0);
+        }
+        else if (action == "select")
+        {
+            // selection carries the option id directly (the DOM sends the parsed
+            // idx, which is the selection id parse_selections recorded).
+            send_selection_response(selection);
+        }
+        else if (action == "submitText")
+        {
+            send_text_response(text);
+        }
+        else if (action == "close")
+        {
+            send_close();
+        }
+        else
+        {
+            Console::get().print("[npc] unknown respond action: " + action);
+        }
+    }
+
+    std::string UINpcTalk::mode_string() const
+    {
+        switch (dialogue_mode)
+        {
+        case DialogueMode::SELECTION:
+            return "selection";
+        case DialogueMode::YES_NO:
+            return "yesno";
+        case DialogueMode::ACCEPT_DECLINE:
+            return "acceptdecline";
+        case DialogueMode::TEXT:
+        case DialogueMode::UNKNOWN:
+        default:
+            if (has_prev_button && has_next_button)
+            {
+                return "nextprev";
+            }
+            if (has_next_button)
+            {
+                return "next";
+            }
+            // No navigation buttons (or only prev): a single confirm button.
+            return "ok";
+        }
+    }
+
+    void UINpcTalk::emit_dialog_state(int32_t npcid) const
+    {
+        std::vector<std::pair<int32_t, std::string>> sels;
+        if (dialogue_mode == DialogueMode::SELECTION)
+        {
+            sels.reserve(selections.size());
+            for (size_t i = 0; i < selections.size(); ++i)
+            {
+                std::string label = i < selection_texts.size() ? selection_texts[i] : std::string();
+                sels.emplace_back(selections[i], label);
+            }
+        }
+
+        UiBridge::get().emit_npc_dialog(true, npcid, mode_string(), prompttext, sels);
     }
 
     void UINpcTalk::change_text(
@@ -513,6 +656,9 @@ namespace jrc
     {
         std::string processed_tx = replace_macros(tx);
         dialogue_mode = resolve_dialogue_mode(msgtype, has_navigation_flags);
+        npc_id = npcid;
+        has_prev_button = false;
+        has_next_button = false;
 
         selections.clear();
         selection_texts.clear();
@@ -609,6 +755,8 @@ namespace jrc
             // bytes. When no flags are present the dialog expects a plain OK button.
             bool has_prev = has_navigation_flags && (style & 0x00FF) != 0;
             bool has_next = has_navigation_flags && (style & 0xFF00) != 0;
+            has_prev_button = has_prev;
+            has_next_button = has_next;
 
             if (has_next)
                 place_button_from_right(NEXT);
@@ -668,6 +816,8 @@ namespace jrc
             static_cast<int16_t>(Constants::viewheight() / 2 - dimension.y() / 2)
         };
 
+        // Mirror the in-canvas dialog over the bridge for the DOM modal.
+        emit_dialog_state(npcid);
     }
 
     void UINpcTalk::send_key(int32_t, bool pressed, bool escape)
@@ -677,8 +827,9 @@ namespace jrc
             return;
         }
 
-        active = false;
-        NpcTalkMorePacket::close(type).dispatch();
+        // Escape closes the dialog; route through send_close so end_confirms
+        // dialogues advance and the DOM modal is dismissed in sync.
+        send_close();
     }
 
     void UINpcTalk::send_scroll(double yoffset)

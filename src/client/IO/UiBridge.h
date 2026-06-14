@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace jrc
@@ -43,6 +44,18 @@ namespace jrc
         void emit_login_result(int ok, const std::string& reason);
         void emit_worlds(const std::vector<World>& worlds);
         void emit_characters(const std::vector<CharEntry>& chars);
+
+        // Pushes the current NPC dialogue state to the DOM modal. When active
+        // is false the other fields are ignored (the DOM clears the modal).
+        // selections carries the parsed menu options as (idx, label) pairs for
+        // SELECTION-mode dialogues.
+        void emit_npc_dialog(
+            bool active,
+            int32_t npcid,
+            const std::string& mode,
+            const std::string& text,
+            const std::vector<std::pair<int32_t, std::string>>& selections
+        );
 
         // Sends a WZ-sourced icon to the DOM as a PNG data URL (or "" if the
         // asset could not be resolved). Keyed by the original requestAsset key.

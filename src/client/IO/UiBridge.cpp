@@ -21,6 +21,7 @@
 #include "../Character/SkillBook.h"
 #include "UITypes/UICharSelect.h"
 #include "UITypes/UILogin.h"
+#include "UITypes/UINpcTalk.h"
 
 #include "../Util/Misc.h"
 
@@ -323,6 +324,45 @@ namespace jrc
         json j = {
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_ASSET},
             {"key", key}, {"dataUrl", dataUrl}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_npc_dialog(
+        bool active,
+        int32_t npcid,
+        const std::string& mode,
+        const std::string& text,
+        const std::vector<std::pair<int32_t, std::string>>& selections
+    )
+    {
+        json payload;
+        payload["active"] = active;
+        if (active)
+        {
+            payload["npcid"] = npcid;
+            payload["mode"] = mode;
+            payload["text"] = text;
+            if (!selections.empty())
+            {
+                json arr = json::array();
+                for (const auto& sel : selections)
+                {
+                    arr.push_back({ {"idx", sel.first}, {"label", sel.second} });
+                }
+                payload["selections"] = arr;
+            }
+        }
+        else
+        {
+            // The DOM treats active:false as "no dialog"; mode is required by the
+            // schema, so emit a stable empty-ish payload it can still validate.
+            payload["mode"] = "";
+        }
+
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_NPCDIALOG},
+            {"json", payload.dump()}
         };
         push(j.dump());
     }
@@ -633,6 +673,19 @@ namespace jrc
             else
             {
                 Console::get().print("[bridge] allocateAp: unknown stat '" + stat + "'");
+            }
+        }
+        else if (t == bridge::MSG_NPCRESPOND)
+        {
+            // Drive the live in-canvas NPC dialogue with the DOM modal's action.
+            // UINpcTalk::respond reuses the exact button->packet send logic, so
+            // lastmsg/mode bookkeeping stays correct. Ignore if no dialog exists.
+            const std::string action = j.value("action", std::string());
+            int32_t selection = j.value("selection", 0);
+            const std::string text = j.value("text", std::string());
+            if (auto npctalk = UI::get().get_element<UINpcTalk>())
+            {
+                npctalk->respond(action, selection, text);
             }
         }
     }
