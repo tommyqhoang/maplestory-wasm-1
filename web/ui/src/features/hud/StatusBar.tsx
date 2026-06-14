@@ -18,6 +18,7 @@ export function StatusBar() {
   const mp = useGame((s) => s.stats.mp);
   const maxMp = useGame((s) => s.stats.maxMp);
   const exp = useGame((s) => s.stats.exp);
+  const expNext = useGame((s) => s.stats.expNext);
 
   return (
     <Panel className="hud-status-bar">
@@ -45,7 +46,7 @@ export function StatusBar() {
         <GaugeBar
           label="EXP"
           value={exp}
-          max={0}
+          max={expNext}
           color="var(--gauge-exp)"
           testId="hud-exp"
         />

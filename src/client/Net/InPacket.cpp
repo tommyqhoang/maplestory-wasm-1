@@ -88,8 +88,14 @@ namespace jrc
     std::string InPacket::read_padded_string(uint16_t count)
     {
         std::string ret;
+        ret.reserve(count);
 
-        for (int16_t i = 0; i < count; ++i)
+        // Counter is size_t, not int16_t: count is unsigned 16-bit (up to
+        // 65535), so a signed-short counter overflows (UB) past 32767 and never
+        // reaches the terminating comparison. read_byte() still bounds-checks
+        // each read, so an over-long count throws PacketError once the buffer
+        // is exhausted instead of looping forever.
+        for (size_t i = 0; i < count; ++i)
         {
             char letter = read_byte();
             if (letter != '\0')

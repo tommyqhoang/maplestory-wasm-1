@@ -59,13 +59,20 @@ namespace jrc
         }
 
 #ifdef MS_PLATFORM_WASM
-        // Start at the highest quality: render the scene supersampled at the
-        // maximum factor so sprites and text stay crisp when upscaled to any
-        // display. Fixed for the session since fonts bake into the atlas.
-        // (Previously this scaled down to match the screen, which left smaller
-        // or low-DPI displays rendering at a soft 1x-2x.)
+        // Render the scene supersampled so sprites and text stay crisp when
+        // upscaled. This is the real visual-quality lever (1x = fast but
+        // aliased, 4x = crisp). It is fixed for the session because fonts bake
+        // into the atlas at this factor, so the user's Quality choice is read
+        // here at startup (Settings persists it; changing it reloads the
+        // client). Defaults to the maximum.
         constexpr GLshort MAX_SUPERSAMPLE = 4;
-        supersample = MAX_SUPERSAMPLE;
+        GLshort requested = static_cast<GLshort>(EM_ASM_INT({
+            var v = parseInt(localStorage.getItem('maple.supersample'), 10);
+            return (v >= 1 && v <= 4) ? v : 4;
+        }));
+        supersample = (requested >= 1 && requested <= MAX_SUPERSAMPLE)
+            ? requested
+            : MAX_SUPERSAMPLE;
 #endif
 
         GLint result = GL_FALSE;

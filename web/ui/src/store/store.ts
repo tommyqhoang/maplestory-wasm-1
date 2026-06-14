@@ -9,7 +9,9 @@ import type {
   NpcDialogPayload,
   ShopPayload,
   BuffEntry,
+  ChatChannel,
 } from "../bridge/protocol";
+import { CHAT_CHANNELS } from "../bridge/protocol";
 
 export interface Notice {
   id: number;
@@ -24,11 +26,14 @@ export interface Stats {
   maxMp: number;
   level: number;
   exp: number;
+  // Exp required to reach the next level (0 at level cap).
+  expNext: number;
 }
 
 export interface ChatLine {
   line: string;
   ctype: number;
+  channel: ChatChannel;
 }
 
 interface GameState {
@@ -50,6 +55,15 @@ interface GameState {
   buffs: BuffEntry[];
   notices: Notice[];
   openWindows: Record<string, boolean>;
+  chatChannel: ChatChannel;
+  meso: number;
+  systemMenuOpen: boolean;
+  bgmVolume: number;
+  sfxVolume: number;
+  bgmMuted: boolean;
+  sfxMuted: boolean;
+  supersample: number;
+  showFps: boolean;
   setScene: (name: string) => void;
   setStats: (s: Stats) => void;
   setPong: (nonce: number) => void;
@@ -70,6 +84,73 @@ interface GameState {
   dismissNotice: (id: number) => void;
   toggleWindow: (name: string) => void;
   closeWindow: (name: string) => void;
+  setChatChannel: (channel: ChatChannel) => void;
+  cycleChatChannel: (dir: number) => void;
+  setMeso: (meso: number) => void;
+  setSystemMenuOpen: (open: boolean) => void;
+  setBgmVolume: (value: number) => void;
+  setSfxVolume: (value: number) => void;
+  setBgmMuted: (muted: boolean) => void;
+  setSfxMuted: (muted: boolean) => void;
+  setSupersample: (value: number) => void;
+  setShowFps: (show: boolean) => void;
+}
+
+function loadBool(key: string, fallback: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw === "true";
+  } catch {
+    return fallback;
+  }
+}
+
+function saveSetting(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable — keep the in-memory value only */
+  }
+}
+
+// Volume preferences persist across sessions. Read defensively so a missing or
+// corrupt localStorage value falls back to a sensible default.
+function loadVolume(key: string, fallback: number): number {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    const v = Number(raw);
+    return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveVolume(key: string, value: number): void {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    /* storage unavailable — keep the in-memory value only */
+  }
+}
+
+// Read an integer setting constrained to [min, max]. A missing, non-numeric, or
+// out-of-range value (e.g. a manually edited localStorage entry) falls back to
+// the default so the UI never renders an unselectable option.
+function loadClampedInt(
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    const v = Number(raw);
+    return Number.isInteger(v) && v >= min && v <= max ? v : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 // Monotonic id source for toast notices. Module-level so ids stay unique
@@ -81,7 +162,7 @@ const MAX_NOTICES = 5;
 
 export const useGame = create<GameState>((set) => ({
   scene: "loading",
-  stats: { hp: 0, maxHp: 0, mp: 0, maxMp: 0, level: 0, exp: 0 },
+  stats: { hp: 0, maxHp: 0, mp: 0, maxMp: 0, level: 0, exp: 0, expNext: 0 },
   lastPong: null,
   character: { name: "", job: "" },
   chat: [],
@@ -98,6 +179,15 @@ export const useGame = create<GameState>((set) => ({
   buffs: [],
   notices: [],
   openWindows: {},
+  chatChannel: "all",
+  meso: 0,
+  systemMenuOpen: false,
+  bgmVolume: loadVolume("maple.bgmVolume", 50),
+  sfxVolume: loadVolume("maple.sfxVolume", 50),
+  bgmMuted: loadBool("maple.bgmMuted", false),
+  sfxMuted: loadBool("maple.sfxMuted", false),
+  supersample: loadClampedInt("maple.supersample", 4, 1, 4),
+  showFps: loadBool("maple.showFps", false),
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
   setPong: (nonce) => set({ lastPong: nonce }),
@@ -136,4 +226,37 @@ export const useGame = create<GameState>((set) => ({
     set((state) => ({
       openWindows: { ...state.openWindows, [name]: false },
     })),
+  setChatChannel: (chatChannel) => set({ chatChannel }),
+  cycleChatChannel: (dir) =>
+    set((state) => {
+      const i = CHAT_CHANNELS.indexOf(state.chatChannel);
+      const next = (i + dir + CHAT_CHANNELS.length) % CHAT_CHANNELS.length;
+      return { chatChannel: CHAT_CHANNELS[next] };
+    }),
+  setMeso: (meso) => set({ meso }),
+  setSystemMenuOpen: (systemMenuOpen) => set({ systemMenuOpen }),
+  setBgmVolume: (value) => {
+    saveVolume("maple.bgmVolume", value);
+    set({ bgmVolume: value });
+  },
+  setSfxVolume: (value) => {
+    saveVolume("maple.sfxVolume", value);
+    set({ sfxVolume: value });
+  },
+  setBgmMuted: (muted) => {
+    saveSetting("maple.bgmMuted", String(muted));
+    set({ bgmMuted: muted });
+  },
+  setSfxMuted: (muted) => {
+    saveSetting("maple.sfxMuted", String(muted));
+    set({ sfxMuted: muted });
+  },
+  setSupersample: (value) => {
+    saveSetting("maple.supersample", String(value));
+    set({ supersample: value });
+  },
+  setShowFps: (show) => {
+    saveSetting("maple.showFps", String(show));
+    set({ showFps: show });
+  },
 }));

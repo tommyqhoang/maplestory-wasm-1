@@ -182,6 +182,24 @@
       "type": "notice",
       "dir": "out",
       "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "useItem",
+      "dir": "in",
+      "fields": [
+        { "name": "tab", "type": "string" },
+        { "name": "slot", "type": "int" }
+      ]
+    },
+    {
+      "type": "setBgmVolume",
+      "dir": "in",
+      "fields": [{ "name": "value", "type": "int" }]
+    },
+    {
+      "type": "setSfxVolume",
+      "dir": "in",
+      "fields": [{ "name": "value", "type": "int" }]
     }
   ]
 }

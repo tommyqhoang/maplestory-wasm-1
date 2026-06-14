@@ -79,7 +79,13 @@ test("bridge.openWindow sends correct command", () => {
 test("bridge.sendChat sends correct command", () => {
   const { bridge, sent } = makeBridge();
   bridge.sendChat("hi");
-  expect(JSON.parse(sent[0])).toEqual({ v: 1, t: "sendChat", text: "hi" });
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "sendChat",
+    text: "hi",
+    channel: "all",
+    target: "",
+  });
 });
 
 test("chat store caps at 200 entries", () => {

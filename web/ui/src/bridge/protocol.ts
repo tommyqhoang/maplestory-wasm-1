@@ -23,6 +23,9 @@ export const StatsMsg = z.object({
   maxMp: z.number().int(),
   level: z.number().int(),
   exp: z.number().int(),
+  // Exp required to reach the next level; 0 at/above the level cap. Optional
+  // for tolerance against an engine build that predates this field.
+  expNext: z.number().int().optional().default(0),
 });
 
 export const CharacterMsg = z.object({
@@ -93,6 +96,9 @@ export const InventoryMsg = z.object({
   ...base,
   t: z.literal("inventory"),
   json: z.string(),
+  // Mesos held by the character. Optional for tolerance against an engine
+  // build that predates this field.
+  meso: z.number().int().optional().default(0),
 });
 export const EquipmentMsg = z.object({
   ...base,
@@ -244,10 +250,23 @@ export const OpenWindowCmd = z.object({
   t: z.literal("openWindow"),
   window: z.string(),
 });
+export const CHAT_CHANNELS = [
+  "all",
+  "party",
+  "buddy",
+  "guild",
+  "alliance",
+  "whisper",
+] as const;
+export type ChatChannel = (typeof CHAT_CHANNELS)[number];
+
 export const SendChatCmd = z.object({
   ...base,
   t: z.literal("sendChat"),
   text: z.string(),
+  // Routing channel; "all" is map/general chat. "whisper" uses `target`.
+  channel: z.enum(CHAT_CHANNELS).optional().default("all"),
+  target: z.string().optional().default(""),
 });
 
 // Outbound command schemas (TS → engine)
@@ -303,6 +322,22 @@ export const ShopActionCmd = z.object({
   itemid: z.number().int(),
   quantity: z.number().int(),
 });
+export const UseItemCmd = z.object({
+  ...base,
+  t: z.literal("useItem"),
+  tab: z.string(),
+  slot: z.number().int(),
+});
+export const SetBgmVolumeCmd = z.object({
+  ...base,
+  t: z.literal("setBgmVolume"),
+  value: z.number().int(),
+});
+export const SetSfxVolumeCmd = z.object({
+  ...base,
+  t: z.literal("setSfxVolume"),
+  value: z.number().int(),
+});
 
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
@@ -336,6 +371,9 @@ export const OutboundCmd = z.discriminatedUnion("t", [
   AllocateApCmd,
   NpcRespondCmd,
   ShopActionCmd,
+  UseItemCmd,
+  SetBgmVolumeCmd,
+  SetSfxVolumeCmd,
 ]);
 
 export type InboundMsg = z.infer<typeof InboundMsg>;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useGame } from "../../store/store";
 import type { InventorySlot } from "../../bridge/protocol";
+import { bridge } from "../../bridge/useBridge";
 import { AssetImage } from "../../design/AssetImage";
 import { Tooltip } from "../../design/Tooltip";
 import { Window } from "../../design/Window";
@@ -27,10 +28,14 @@ export function InventoryBody({
   tab,
   setTab,
   inventory,
+  meso = 0,
+  onUseItem,
 }: {
   tab: string;
   setTab: (t: string) => void;
   inventory: InventorySlot[];
+  meso?: number;
+  onUseItem?: (tab: string, slot: number) => void;
 }) {
   // Items for the active tab, indexed by their 1-based engine slot.
   const bySlot = new Map<number, InventorySlot>();
@@ -44,10 +49,20 @@ export function InventoryBody({
   const cells = [];
   for (let slot = 1; slot <= maxSlot; slot++) {
     const item = bySlot.get(slot);
+    const usable = !!item && (tab === "equip" || tab === "use");
     cells.push(
       <div
         key={slot}
         data-testid="inventory-cell"
+        className={item ? "ui-interactive" : undefined}
+        onDoubleClick={usable ? () => onUseItem?.(tab, slot) : undefined}
+        title={
+          usable
+            ? tab === "equip"
+              ? "Double-click to equip"
+              : "Double-click to use"
+            : undefined
+        }
         style={{
           position: "relative",
           width: CELL_PX,
@@ -58,6 +73,7 @@ export function InventoryBody({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          cursor: usable ? "pointer" : "default",
         }}
       >
         {item && (
@@ -146,6 +162,27 @@ export function InventoryBody({
       >
         {cells}
       </div>
+
+      <div
+        data-testid="inventory-meso"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: "var(--sp-1)",
+          marginTop: "var(--sp-3)",
+          paddingTop: "var(--sp-2)",
+          borderTop: "1px solid var(--surface-border)",
+          fontSize: "0.78rem",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+        }}
+      >
+        <span style={{ color: "var(--text-secondary)", fontWeight: 600 }}>
+          Mesos
+        </span>
+        <span>{meso.toLocaleString()}</span>
+      </div>
     </div>
   );
 }
@@ -153,6 +190,7 @@ export function InventoryBody({
 export function InventoryWindow() {
   const open = useGame((s) => s.openWindows["inventory"]);
   const inventory = useGame((s) => s.inventory);
+  const meso = useGame((s) => s.meso);
   const closeWindow = useGame((s) => s.closeWindow);
   const [tab, setTab] = useState<string>("equip");
 
@@ -161,7 +199,13 @@ export function InventoryWindow() {
   return (
     <Window title="Inventory" onClose={() => closeWindow("inventory")}>
       <div data-testid="inventory-window">
-        <InventoryBody tab={tab} setTab={setTab} inventory={inventory} />
+        <InventoryBody
+          tab={tab}
+          setTab={setTab}
+          inventory={inventory}
+          meso={meso}
+          onUseItem={(t, slot) => bridge.useItem(t, slot)}
+        />
       </div>
     </Window>
   );

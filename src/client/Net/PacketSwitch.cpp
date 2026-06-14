@@ -265,15 +265,25 @@ namespace jrc
         {
             if (auto& handler = handlers[opcode])
             {
-                // Handler ok. Packet is passed on.
+                // Handler ok. Packet is passed on. Any exception a handler
+                // raises is contained here so one malformed packet (or a bug in
+                // a single handler) is logged and skipped rather than taking
+                // down the whole client.
                 try
                 {
                     handler->handle(recv);
                 }
                 catch (const PacketError& err)
                 {
-                    // Notice about an error.
                     warn(err.what(), opcode);
+                }
+                catch (const std::exception& err)
+                {
+                    warn(err.what(), opcode);
+                }
+                catch (...)
+                {
+                    warn("unknown exception in handler", opcode);
                 }
             }
             else

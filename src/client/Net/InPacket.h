@@ -76,6 +76,16 @@ namespace jrc
         T read()
         {
             size_t count = sizeof(T) / sizeof(int8_t);
+            // Bounds-check up front: bytes[pos] is dereferenced before skip()
+            // would catch an underflow, so without this a malformed or
+            // misaligned packet reads past the buffer and the WASM runtime
+            // traps with "memory access out of bounds" (an uncatchable crash)
+            // instead of throwing a PacketError the dispatcher swallows.
+            if (count > length())
+            {
+                throw PacketError("Stack underflow at " + std::to_string(pos));
+            }
+
             T all = 0;
             for (size_t i = 0; i < count; ++i)
             {

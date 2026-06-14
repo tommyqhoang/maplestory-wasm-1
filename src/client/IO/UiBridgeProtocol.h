@@ -31,4 +31,7 @@ constexpr const char* MSG_SHOP = "shop";
 constexpr const char* MSG_SHOPACTION = "shopAction";
 constexpr const char* MSG_BUFFS = "buffs";
 constexpr const char* MSG_NOTICE = "notice";
+constexpr const char* MSG_USEITEM = "useItem";
+constexpr const char* MSG_SETBGMVOLUME = "setBgmVolume";
+constexpr const char* MSG_SETSFXVOLUME = "setSfxVolume";
 }}

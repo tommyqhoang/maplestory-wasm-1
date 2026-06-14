@@ -92,6 +92,7 @@ namespace jrc
 
         // Messaging
         GENERAL_CHAT = 49,
+        WHISPER      = 120,
         MULTI_CHAT   = 119,
         SPOUSE_CHAT  = 121,
 

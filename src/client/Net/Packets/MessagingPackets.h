@@ -61,6 +61,20 @@ namespace jrc
         }
     };
 
+    // Packet which sends a whisper (private message) to a named character.
+    // Opcode: WHISPER(120). The request byte mirrors the server's WhisperFlag
+    // bits: WHISPER(0x02) | REQUEST(0x04) = 0x06 for an outgoing whisper.
+    class WhisperPacket : public OutPacket
+    {
+    public:
+        WhisperPacket(const std::string& target, const std::string& message) : OutPacket(WHISPER)
+        {
+            write_byte(0x06);
+            write_string(target);
+            write_string(message);
+        }
+    };
+
     // Packet which sends a message to a spouse.
     // Opcode: SPOUSE_CHAT(121)
     class SpouseChatPacket : public OutPacket

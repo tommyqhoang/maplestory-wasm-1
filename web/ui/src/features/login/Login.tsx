@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useGame } from "../../store/store";
 import { bridge } from "../../bridge/useBridge";
 import { Panel, Button } from "../../design/primitives";
@@ -15,13 +15,6 @@ export function Login() {
     }
   }, [account, password]);
 
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") submit();
-    },
-    [submit],
-  );
-
   const hasError = loginResult !== null && !loginResult.ok;
   const errorMsg = hasError
     ? loginResult!.reason.trim() || "Login failed. Please try again."
@@ -35,47 +28,52 @@ export function Login() {
           <p className="entry-logo__sub">Sign in to continue</p>
         </div>
 
-        <div className="entry-field">
-          <label htmlFor="login-account">Account</label>
-          <input
-            id="login-account"
-            className="entry-input"
-            type="text"
-            autoComplete="username"
-            placeholder="Enter account name"
-            value={account}
-            onChange={(e) => setAccount(e.target.value)}
-            onKeyDown={onKeyDown}
-            data-testid="login-account"
-          />
-        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <div className="entry-field">
+            <label htmlFor="login-account">Account</label>
+            <input
+              id="login-account"
+              className="entry-input"
+              type="text"
+              autoComplete="username"
+              placeholder="Enter account name"
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+              data-testid="login-account"
+            />
+          </div>
 
-        <div className="entry-field">
-          <label htmlFor="login-password">Password</label>
-          <input
-            id="login-password"
-            className="entry-input"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Enter password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={onKeyDown}
-            data-testid="login-password"
-          />
-        </div>
+          <div className="entry-field">
+            <label htmlFor="login-password">Password</label>
+            <input
+              id="login-password"
+              className="entry-input"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              data-testid="login-password"
+            />
+          </div>
 
-        {errorMsg && <div className="entry-error">{errorMsg}</div>}
+          {errorMsg && <div className="entry-error">{errorMsg}</div>}
 
-        <div className="entry-actions">
-          <Button
-            onClick={submit}
-            disabled={!account.trim()}
-            testId="login-submit"
-          >
-            Log In
-          </Button>
-        </div>
+          <div className="entry-actions">
+            <Button
+              onClick={() => {}}
+              disabled={!account.trim()}
+              testId="login-submit"
+            >
+              Log In
+            </Button>
+          </div>
+        </form>
       </Panel>
     </EntryBackdrop>
   );

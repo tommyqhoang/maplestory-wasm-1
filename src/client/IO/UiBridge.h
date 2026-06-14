@@ -23,7 +23,7 @@ namespace jrc
         void poll_emit();
 
         void emit_scene(const std::string& name);
-        void emit_stats(int hp, int maxhp, int mp, int maxmp, int level, int64_t exp);
+        void emit_stats(int hp, int maxhp, int mp, int maxmp, int level, int64_t exp, int64_t expNext);
         // Builds and emits the detailed stats payload (StatsDetail) consumed by
         // the DOM Stats window. Reads from the live player CharStats.
         void emit_stats_detail();

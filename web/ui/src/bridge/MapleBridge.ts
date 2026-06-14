@@ -13,10 +13,30 @@ import {
   BuffsData,
   NoticePayload,
 } from "./protocol";
+import type { ChatChannel } from "./protocol";
 import { z } from "zod";
 import { useGame } from "../store/store";
 
 type SendFn = (json: string) => void;
+
+// Incoming group/whisper chat lines are pre-formatted by the engine with a
+// channel prefix ("[Party] name: msg"). Derive the channel so the DOM chat can
+// route the line to the matching tab. Anything unprefixed is map/general chat.
+const CHANNEL_PREFIXES: Array<[string, ChatChannel]> = [
+  ["[Party]", "party"],
+  ["[Guild]", "guild"],
+  ["[Alliance]", "alliance"],
+  ["[Buddy]", "buddy"],
+  ["[To ", "whisper"],
+  ["[From ", "whisper"],
+];
+
+function channelFromLine(line: string): ChatChannel {
+  for (const [prefix, channel] of CHANNEL_PREFIXES) {
+    if (line.startsWith(prefix)) return channel;
+  }
+  return "all";
+}
 
 export class MapleBridge {
   constructor(private readonly transport: SendFn) {}
@@ -50,8 +70,8 @@ export class MapleBridge {
     this.send({ v: PROTOCOL_VERSION, t: "openWindow", window });
   }
 
-  sendChat(text: string): void {
-    this.send({ v: PROTOCOL_VERSION, t: "sendChat", text });
+  sendChat(text: string, channel: ChatChannel = "all", target = ""): void {
+    this.send({ v: PROTOCOL_VERSION, t: "sendChat", text, channel, target });
   }
 
   login(account: string, password: string): void {
@@ -103,6 +123,19 @@ export class MapleBridge {
     });
   }
 
+  // Double-click an inventory item: equip an equip, consume a use item.
+  useItem(tab: string, slot: number): void {
+    this.send({ v: PROTOCOL_VERSION, t: "useItem", tab, slot });
+  }
+
+  setBgmVolume(value: number): void {
+    this.send({ v: PROTOCOL_VERSION, t: "setBgmVolume", value });
+  }
+
+  setSfxVolume(value: number): void {
+    this.send({ v: PROTOCOL_VERSION, t: "setSfxVolume", value });
+  }
+
   private route(msg: InboundMsg): void {
     const s = useGame.getState();
     switch (msg.t) {
@@ -114,6 +147,7 @@ export class MapleBridge {
           maxMp: msg.maxMp,
           level: msg.level,
           exp: msg.exp,
+          expNext: msg.expNext,
         });
         break;
       case "scene":
@@ -126,7 +160,11 @@ export class MapleBridge {
         s.setCharacter({ name: msg.name, job: msg.job });
         break;
       case "chat":
-        s.addChatLine({ line: msg.line, ctype: msg.ctype });
+        s.addChatLine({
+          line: msg.line,
+          ctype: msg.ctype,
+          channel: channelFromLine(msg.line),
+        });
         break;
       case "loginResult":
         s.setLoginResult({ ok: msg.ok === 1, reason: msg.reason });
@@ -196,6 +234,7 @@ export class MapleBridge {
         break;
       }
       case "inventory": {
+        s.setMeso(msg.meso);
         let parsed: unknown;
         try {
           parsed = JSON.parse(msg.json);

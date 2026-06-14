@@ -7,12 +7,15 @@
 #include "../Console.h"
 #include "../Constants.h"
 #include "../Character/CharStats.h"
+#include "../Character/ExpTable.h"
 #include "../Character/Player.h"
 #include "../Gameplay/Stage.h"
 #include "../Net/Login.h"
 #include "../Net/Packets/MessagingPackets.h"
 #include "../Net/Packets/LoginPackets.h"
 #include "../Net/Packets/PlayerPackets.h"
+#include "../Net/Packets/InventoryPackets.h"
+#include "../Audio/Audio.h"
 #include "../Character/MapleStat.h"
 #include "../Character/EquipStat.h"
 #include "../Character/Inventory/Inventory.h"
@@ -43,6 +46,7 @@
 #endif
 #include "stb/stb_image_write.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 
@@ -75,12 +79,12 @@ namespace jrc
         push(j.dump());
     }
 
-    void UiBridge::emit_stats(int hp, int maxhp, int mp, int maxmp, int level, int64_t exp)
+    void UiBridge::emit_stats(int hp, int maxhp, int mp, int maxmp, int level, int64_t exp, int64_t expNext)
     {
         json j = {
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_STATS},
             {"hp", hp}, {"maxHp", maxhp}, {"mp", mp}, {"maxMp", maxmp},
-            {"level", level}, {"exp", exp}
+            {"level", level}, {"exp", exp}, {"expNext", expNext}
         };
         push(j.dump());
     }
@@ -164,16 +168,21 @@ namespace jrc
             }
         }
 
+        int64_t meso = inv.get_meso();
+
+        // Sign on items + meso so a meso change (pickups/drops) re-emits even
+        // when the item layout is unchanged.
         std::string payload = arr.dump();
-        if (payload == inventory_sig_)
+        std::string sig = payload + "|" + std::to_string(meso);
+        if (sig == inventory_sig_)
         {
             return;
         }
-        inventory_sig_ = payload;
+        inventory_sig_ = sig;
 
         json j = {
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_INVENTORY},
-            {"json", payload}
+            {"json", payload}, {"meso", meso}
         };
         push(j.dump());
     }
@@ -680,10 +689,81 @@ namespace jrc
         else if (t == bridge::MSG_SENDCHAT)
         {
             const std::string text = j.value("text", std::string());
+            // Channel routing. "all" is map/general chat; party/guild/alliance
+            // are server-routed group chats (recipient list left empty — Cosmic
+            // resolves membership server-side); buddy carries recipient ids the
+            // server forwards to; whisper targets a single named character.
+            const std::string channel = j.value("channel", std::string("all"));
+            const std::string target = j.value("target", std::string());
             if (!text.empty())
             {
-                GeneralChatPacket(text, true).dispatch();
+                if (channel == "party")
+                {
+                    MultiChatPacket(MultiChatPacket::PARTY, {}, text).dispatch();
+                }
+                else if (channel == "guild")
+                {
+                    MultiChatPacket(MultiChatPacket::GUILD, {}, text).dispatch();
+                }
+                else if (channel == "alliance")
+                {
+                    MultiChatPacket(MultiChatPacket::ALLIANCE, {}, text).dispatch();
+                }
+                else if (channel == "buddy")
+                {
+                    MultiChatPacket(MultiChatPacket::BUDDY, {}, text).dispatch();
+                }
+                else if (channel == "whisper" && !target.empty())
+                {
+                    WhisperPacket(target, text).dispatch();
+                }
+                else
+                {
+                    GeneralChatPacket(text, true).dispatch();
+                }
             }
+        }
+        else if (t == bridge::MSG_USEITEM)
+        {
+            // Double-click on an inventory item: equip an EQUIP item or consume
+            // a USE item. Mirrors UIItemInventory::doubleclick.
+            const std::string tabname = j.value("tab", std::string());
+            const int16_t slot = static_cast<int16_t>(j.value("slot", 0));
+            InventoryType::Id type = InventoryType::NONE;
+            if (tabname == "equip") type = InventoryType::EQUIP;
+            else if (tabname == "use") type = InventoryType::USE;
+            else if (tabname == "setup") type = InventoryType::SETUP;
+            else if (tabname == "etc") type = InventoryType::ETC;
+            else if (tabname == "cash") type = InventoryType::CASH;
+
+            const Inventory& inv = Stage::get().get_player().get_inventory();
+            int32_t item_id = inv.get_item_id(type, slot);
+            if (item_id != 0)
+            {
+                if (type == InventoryType::EQUIP)
+                {
+                    EquipItemPacket(slot, inv.find_equipslot(item_id)).dispatch();
+                }
+                else if (type == InventoryType::USE)
+                {
+                    // Skip throwing-stars/arrows/bullets, which aren't "used".
+                    int32_t prefix = item_id / 10000;
+                    if (prefix != 204 && prefix != 206 && prefix != 207)
+                    {
+                        UseItemPacket(slot, item_id).dispatch();
+                    }
+                }
+            }
+        }
+        else if (t == bridge::MSG_SETBGMVOLUME)
+        {
+            int vol = j.value("value", 50);
+            Music::set_bgmvolume(static_cast<uint8_t>(std::clamp(vol, 0, 100)));
+        }
+        else if (t == bridge::MSG_SETSFXVOLUME)
+        {
+            int vol = j.value("value", 50);
+            Sound::set_sfxvolume(static_cast<uint8_t>(std::clamp(vol, 0, 100)));
         }
         else if (t == bridge::MSG_LOGIN)
         {
@@ -808,11 +888,16 @@ namespace jrc
         int maxmp = st.get_total(Equipstat::MP);
         int level = st.get_stat(Maplestat::LEVEL);
         int64_t exp = st.get_exp();
+        // Exp required to reach the next level, so the DOM EXP gauge can render
+        // a real fill ratio (exp / expNext). Zero past the level cap.
+        int64_t expNext = (level >= 0 && static_cast<size_t>(level) < ExpTable::LEVELCAP)
+            ? ExpTable::values[level]
+            : 0;
         if (hp != hp_ || mp != mp_ || maxhp != maxhp_ || maxmp != maxmp_ ||
             level != level_ || exp != exp_)
         {
             hp_ = hp; mp_ = mp; maxhp_ = maxhp; maxmp_ = maxmp; level_ = level; exp_ = exp;
-            emit_stats(hp, maxhp, mp, maxmp, level, exp);
+            emit_stats(hp, maxhp, mp, maxmp, level, exp, expNext);
         }
 
         const std::string& name = st.get_name();
