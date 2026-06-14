@@ -1,35 +1,47 @@
+import { useEffect } from "react";
 import { useGame } from "../store/store";
 import { Hud } from "../features/hud/Hud";
+import { Login } from "../features/login/Login";
+import { WorldSelect } from "../features/worldselect/WorldSelect";
+import { CharSelect } from "../features/charselect/CharSelect";
+import { EntryBackdrop } from "../features/entry/EntryBackdrop";
+import "../features/entry/entry.css";
 
 export function App() {
   const scene = useGame((s) => s.scene);
+
+  // Expose scene on body so CSS can show/hide the game canvas (#container).
+  // We use visibility:hidden (not display:none) to avoid disturbing the WASM engine.
+  useEffect(() => {
+    document.body.dataset.scene = scene;
+  }, [scene]);
 
   if (scene === "ingame") {
     return <Hud />;
   }
 
-  // Dev-only probe: shows bridge state during loading/charselect scenes
-  if ((import.meta as { env?: { DEV?: boolean } }).env?.DEV) {
-    return <DevProbe />;
+  if (scene === "login") {
+    return <Login />;
   }
 
-  return null;
-}
+  if (scene === "worldselect") {
+    return <WorldSelect />;
+  }
 
-function DevProbe() {
-  const scene = useGame((s) => s.scene);
-  const stats = useGame((s) => s.stats);
-  const lastPong = useGame((s) => s.lastPong);
+  if (scene === "charselect") {
+    return <CharSelect />;
+  }
+
+  // "loading" or any unknown scene — minimal loading state with backdrop
   return (
-    <div className="phase0-probe ui-interactive">
-      <div>scene: {scene}</div>
-      <div>
-        HP: {stats.hp} / {stats.maxHp}
+    <EntryBackdrop>
+      <div className="entry-loading">
+        <div className="entry-spinner" />
+        <span>Connecting…</span>
       </div>
-      <div>
-        MP: {stats.mp} / {stats.maxMp}
-      </div>
-      <div>last pong: {lastPong ?? "—"}</div>
-    </div>
+    </EntryBackdrop>
   );
 }
+
+// Dev probe removed — real scene components now handle all pre-ingame states.
+// Add DEV-only tooling here if needed in future without changing prod path.

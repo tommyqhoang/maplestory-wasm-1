@@ -35,6 +35,7 @@ interface ButtonProps {
   title?: string;
   disabled?: boolean;
   style?: React.CSSProperties;
+  testId?: string;
 }
 
 export function Button({
@@ -44,6 +45,7 @@ export function Button({
   title,
   disabled,
   style: extraStyle,
+  testId,
 }: ButtonProps) {
   return (
     <button
@@ -53,6 +55,7 @@ export function Button({
       onClick={onClick}
       title={title}
       disabled={disabled}
+      data-testid={testId}
       style={{
         background: "var(--accent)",
         color: "#fff",
