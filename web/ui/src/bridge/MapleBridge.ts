@@ -66,6 +66,10 @@ export class MapleBridge {
     this.send({ v: PROTOCOL_VERSION, t: "backToLogin" });
   }
 
+  requestAsset(key: string): void {
+    this.send({ v: PROTOCOL_VERSION, t: "requestAsset", key });
+  }
+
   private route(msg: InboundMsg): void {
     const s = useGame.getState();
     switch (msg.t) {
@@ -136,6 +140,9 @@ export class MapleBridge {
         }
         break;
       }
+      case "asset":
+        s.setAsset(msg.key, msg.dataUrl);
+        break;
     }
   }
 }

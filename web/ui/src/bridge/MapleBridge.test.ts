@@ -171,3 +171,30 @@ test("bridge.backToLogin sends correct command", () => {
   bridge.backToLogin();
   expect(JSON.parse(sent[0])).toEqual({ v: 1, t: "backToLogin" });
 });
+
+// Phase 3 Task 1 — WZ asset bridge
+
+test("recv asset sets store.assets[key]", () => {
+  const { bridge } = makeBridge();
+  bridge.recv(
+    JSON.stringify({
+      v: 1,
+      t: "asset",
+      key: "item/2000000",
+      dataUrl: "data:image/png;base64,AAAA",
+    }),
+  );
+  expect(useGame.getState().assets["item/2000000"]).toBe(
+    "data:image/png;base64,AAAA",
+  );
+});
+
+test("bridge.requestAsset sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.requestAsset("item/2000");
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "requestAsset",
+    key: "item/2000",
+  });
+});

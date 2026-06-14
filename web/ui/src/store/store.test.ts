@@ -12,3 +12,10 @@ test("setScene updates scene", () => {
   useGame.getState().setScene("ingame");
   expect(useGame.getState().scene).toBe("ingame");
 });
+
+test("setAsset stores a data url under its key", () => {
+  useGame.getState().setAsset("item/2000000", "data:image/png;base64,XYZ");
+  expect(useGame.getState().assets["item/2000000"]).toBe(
+    "data:image/png;base64,XYZ",
+  );
+});

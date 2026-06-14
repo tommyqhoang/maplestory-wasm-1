@@ -105,6 +105,19 @@
       "type": "backToLogin",
       "dir": "in",
       "fields": []
+    },
+    {
+      "type": "requestAsset",
+      "dir": "in",
+      "fields": [{ "name": "key", "type": "string" }]
+    },
+    {
+      "type": "asset",
+      "dir": "out",
+      "fields": [
+        { "name": "key", "type": "string" },
+        { "name": "dataUrl", "type": "string" }
+      ]
     }
   ]
 }

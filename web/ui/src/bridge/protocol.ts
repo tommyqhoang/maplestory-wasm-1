@@ -78,6 +78,12 @@ export const CharactersMsg = z.object({
   t: z.literal("characters"),
   json: z.string(),
 });
+export const AssetMsg = z.object({
+  ...base,
+  t: z.literal("asset"),
+  key: z.string(),
+  dataUrl: z.string(),
+});
 
 export const PingMsg = z.object({
   ...base,
@@ -123,6 +129,11 @@ export const BackToLoginCmd = z.object({
   ...base,
   t: z.literal("backToLogin"),
 });
+export const RequestAssetCmd = z.object({
+  ...base,
+  t: z.literal("requestAsset"),
+  key: z.string(),
+});
 
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
@@ -133,6 +144,7 @@ export const InboundMsg = z.discriminatedUnion("t", [
   LoginResultMsg,
   WorldsMsg,
   CharactersMsg,
+  AssetMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,
@@ -143,6 +155,7 @@ export const OutboundCmd = z.discriminatedUnion("t", [
   RequestCharlistCmd,
   SelectCharCmd,
   BackToLoginCmd,
+  RequestAssetCmd,
 ]);
 
 export type InboundMsg = z.infer<typeof InboundMsg>;

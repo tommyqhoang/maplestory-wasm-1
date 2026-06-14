@@ -24,6 +24,7 @@ interface GameState {
   loginResult: { ok: boolean; reason: string } | null;
   worlds: WorldInfo[];
   characters: CharInfo[];
+  assets: Record<string, string>;
   setScene: (name: string) => void;
   setStats: (s: Stats) => void;
   setPong: (nonce: number) => void;
@@ -32,6 +33,7 @@ interface GameState {
   setLoginResult: (r: { ok: boolean; reason: string }) => void;
   setWorlds: (worlds: WorldInfo[]) => void;
   setCharacters: (characters: CharInfo[]) => void;
+  setAsset: (key: string, dataUrl: string) => void;
 }
 
 export const useGame = create<GameState>((set) => ({
@@ -43,6 +45,7 @@ export const useGame = create<GameState>((set) => ({
   loginResult: null,
   worlds: [],
   characters: [],
+  assets: {},
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
   setPong: (nonce) => set({ lastPong: nonce }),
@@ -54,4 +57,6 @@ export const useGame = create<GameState>((set) => ({
   setLoginResult: (loginResult) => set({ loginResult }),
   setWorlds: (worlds) => set({ worlds }),
   setCharacters: (characters) => set({ characters }),
+  setAsset: (key, dataUrl) =>
+    set((state) => ({ assets: { ...state.assets, [key]: dataUrl } })),
 }));
