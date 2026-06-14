@@ -101,6 +101,12 @@ namespace jrc
 
     void UIStatsinfo::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // On the WASM build the detailed stats are rendered by the DOM Stats
+        // window (UiBridge::emit_stats_detail). Keep this element alive for its
+        // logic/state but suppress the in-canvas draw to avoid a duplicate UI.
+        (void)alpha;
+#else
         UIElement::draw(alpha);
 
         if (showdetail)
@@ -124,6 +130,7 @@ namespace jrc
 
             statlabels[i].draw(labelpos);
         }
+#endif
     }
 
     void UIStatsinfo::send_key(int32_t, bool pressed, bool escape)

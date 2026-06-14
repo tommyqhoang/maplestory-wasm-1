@@ -12,7 +12,9 @@
 #include "../Net/Login.h"
 #include "../Net/Packets/MessagingPackets.h"
 #include "../Net/Packets/LoginPackets.h"
+#include "../Net/Packets/PlayerPackets.h"
 #include "../Character/MapleStat.h"
+#include "../Character/EquipStat.h"
 #include "UITypes/UICharSelect.h"
 #include "UITypes/UILogin.h"
 
@@ -72,6 +74,50 @@ namespace jrc
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_STATS},
             {"hp", hp}, {"maxHp", maxhp}, {"mp", mp}, {"maxMp", maxmp},
             {"level", level}, {"exp", exp}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_stats_detail()
+    {
+        const CharStats& st = Stage::get().get_player().get_stats();
+
+        // Mirror the exact values UIStatsInfo displays: primary stats and
+        // secondary stats use get_total (the equip-modified total the in-canvas
+        // window shows); HP/MP show current/max.
+        json detail = {
+            {"name", st.get_name()},
+            {"job", st.get_jobname()},
+            {"level", st.get_stat(Maplestat::LEVEL)},
+            {"ap", st.get_stat(Maplestat::AP)},
+            {"str", st.get_total(Equipstat::STR)},
+            {"dex", st.get_total(Equipstat::DEX)},
+            {"int", st.get_total(Equipstat::INT)},
+            {"luk", st.get_total(Equipstat::LUK)},
+            {"hp", st.get_stat(Maplestat::HP)},
+            {"maxHp", st.get_total(Equipstat::HP)},
+            {"mp", st.get_stat(Maplestat::MP)},
+            {"maxMp", st.get_total(Equipstat::MP)},
+            {"watk", st.get_total(Equipstat::WATK)},
+            {"matk", st.get_total(Equipstat::MAGIC)},
+            {"wdef", st.get_total(Equipstat::WDEF)},
+            {"mdef", st.get_total(Equipstat::MDEF)},
+            {"accuracy", st.get_total(Equipstat::ACC)},
+            {"avoid", st.get_total(Equipstat::AVOID)},
+            {"speed", st.get_total(Equipstat::SPEED)},
+            {"jump", st.get_total(Equipstat::JUMP)}
+        };
+
+        std::string obj = detail.dump();
+        if (obj == statsdetail_sig_)
+        {
+            return;
+        }
+        statsdetail_sig_ = obj;
+
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_STATSDETAIL},
+            {"json", obj}
         };
         push(j.dump());
     }
@@ -454,6 +500,28 @@ namespace jrc
                 resolve_and_emit_asset(assetkey);
             }
         }
+        else if (t == bridge::MSG_ALLOCATEAP)
+        {
+            // Reuse the exact packet the in-canvas UIStatsInfo sends
+            // (UIStatsInfo::send_apup -> SpendApPacket).
+            const std::string stat = j.value("stat", std::string());
+            bool valid = true;
+            Maplestat::Id id = Maplestat::STR;
+            if (stat == "str")      { id = Maplestat::STR; }
+            else if (stat == "dex") { id = Maplestat::DEX; }
+            else if (stat == "int") { id = Maplestat::INT; }
+            else if (stat == "luk") { id = Maplestat::LUK; }
+            else                    { valid = false; }
+
+            if (valid)
+            {
+                SpendApPacket(id).dispatch();
+            }
+            else
+            {
+                Console::get().print("[bridge] allocateAp: unknown stat '" + stat + "'");
+            }
+        }
     }
 
     void UiBridge::poll_emit()
@@ -484,6 +552,10 @@ namespace jrc
             job_ = job;
             emit_character(name, job);
         }
+
+        // Detailed stats for the DOM Stats window. Self-diffs via an internal
+        // signature, so this only pushes a message when the detail set changes.
+        emit_stats_detail();
     }
 }
 

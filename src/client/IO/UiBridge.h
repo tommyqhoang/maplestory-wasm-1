@@ -23,6 +23,9 @@ namespace jrc
 
         void emit_scene(const std::string& name);
         void emit_stats(int hp, int maxhp, int mp, int maxmp, int level, int64_t exp);
+        // Builds and emits the detailed stats payload (StatsDetail) consumed by
+        // the DOM Stats window. Reads from the live player CharStats.
+        void emit_stats_detail();
         void emit_character(const std::string& name, const std::string& job);
         void emit_chat(const std::string& line, int ctype);
         void emit_pong(int nonce);
@@ -47,6 +50,11 @@ namespace jrc
         int64_t exp_ = -1;
         std::string name_;
         std::string job_;
+
+        // Serialized signature of the last emitted StatsDetail payload, used to
+        // suppress redundant emits (the detail set changes on level-up, AP
+        // spend, equip changes, buffs, etc.).
+        std::string statsdetail_sig_;
 
         // Entry-flow selection state (set by selectWorld, used by requestCharlist).
         uint8_t selected_world_ = 0;
