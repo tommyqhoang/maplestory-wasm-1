@@ -4,6 +4,7 @@ import {
   PROTOCOL_VERSION,
   WorldInfo,
   CharInfo,
+  StatsDetail,
 } from "./protocol";
 import { z } from "zod";
 import { useGame } from "../store/store";
@@ -68,6 +69,10 @@ export class MapleBridge {
 
   requestAsset(key: string): void {
     this.send({ v: PROTOCOL_VERSION, t: "requestAsset", key });
+  }
+
+  allocateAp(stat: string): void {
+    this.send({ v: PROTOCOL_VERSION, t: "allocateAp", stat });
   }
 
   private route(msg: InboundMsg): void {
@@ -143,6 +148,25 @@ export class MapleBridge {
       case "asset":
         s.setAsset(msg.key, msg.dataUrl);
         break;
+      case "statsdetail": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] statsdetail: failed to parse json field");
+          break;
+        }
+        const result = StatsDetail.safeParse(parsed);
+        if (!result.success) {
+          console.warn(
+            "[bridge] statsdetail: invalid payload",
+            result.error.issues,
+          );
+        } else {
+          s.setStatsDetail(result.data);
+        }
+        break;
+      }
     }
   }
 }

@@ -20,4 +20,6 @@ constexpr const char* MSG_SELECTCHAR = "selectChar";
 constexpr const char* MSG_BACKTOLOGIN = "backToLogin";
 constexpr const char* MSG_REQUESTASSET = "requestAsset";
 constexpr const char* MSG_ASSET = "asset";
+constexpr const char* MSG_STATSDETAIL = "statsdetail";
+constexpr const char* MSG_ALLOCATEAP = "allocateAp";
 }}

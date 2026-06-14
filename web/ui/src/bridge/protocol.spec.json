@@ -118,6 +118,16 @@
         { "name": "key", "type": "string" },
         { "name": "dataUrl", "type": "string" }
       ]
+    },
+    {
+      "type": "statsdetail",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "allocateAp",
+      "dir": "in",
+      "fields": [{ "name": "stat", "type": "string" }]
     }
   ]
 }

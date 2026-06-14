@@ -84,6 +84,36 @@ export const AssetMsg = z.object({
   key: z.string(),
   dataUrl: z.string(),
 });
+export const StatsDetailMsg = z.object({
+  ...base,
+  t: z.literal("statsdetail"),
+  json: z.string(),
+});
+
+// Parsed payload of StatsDetailMsg.json (engine → TS, detailed Stats window)
+export const StatsDetail = z.object({
+  name: z.string().optional(),
+  job: z.string(),
+  level: z.number().int(),
+  ap: z.number().int(),
+  str: z.number().int(),
+  dex: z.number().int(),
+  int: z.number().int(),
+  luk: z.number().int(),
+  hp: z.number().int(),
+  maxHp: z.number().int(),
+  mp: z.number().int(),
+  maxMp: z.number().int(),
+  watk: z.number().int(),
+  matk: z.number().int(),
+  wdef: z.number().int(),
+  mdef: z.number().int(),
+  accuracy: z.number().int(),
+  avoid: z.number().int(),
+  speed: z.number().int(),
+  jump: z.number().int(),
+});
+export type StatsDetail = z.infer<typeof StatsDetail>;
 
 export const PingMsg = z.object({
   ...base,
@@ -134,6 +164,11 @@ export const RequestAssetCmd = z.object({
   t: z.literal("requestAsset"),
   key: z.string(),
 });
+export const AllocateApCmd = z.object({
+  ...base,
+  t: z.literal("allocateAp"),
+  stat: z.string(),
+});
 
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
@@ -145,6 +180,7 @@ export const InboundMsg = z.discriminatedUnion("t", [
   WorldsMsg,
   CharactersMsg,
   AssetMsg,
+  StatsDetailMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,
@@ -156,6 +192,7 @@ export const OutboundCmd = z.discriminatedUnion("t", [
   SelectCharCmd,
   BackToLoginCmd,
   RequestAssetCmd,
+  AllocateApCmd,
 ]);
 
 export type InboundMsg = z.infer<typeof InboundMsg>;

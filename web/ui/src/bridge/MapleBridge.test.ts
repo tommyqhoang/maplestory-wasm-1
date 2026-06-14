@@ -198,3 +198,58 @@ test("bridge.requestAsset sends correct command", () => {
     key: "item/2000",
   });
 });
+
+// Phase 3 Task 2 — detailed stats window
+
+test("recv statsdetail with valid json populates store.statsDetail", () => {
+  const { bridge } = makeBridge();
+  const detail = {
+    name: "HeroChar",
+    job: "Beginner",
+    level: 10,
+    ap: 5,
+    str: 12,
+    dex: 8,
+    int: 4,
+    luk: 4,
+    hp: 100,
+    maxHp: 120,
+    mp: 30,
+    maxMp: 40,
+    watk: 17,
+    matk: 9,
+    wdef: 5,
+    mdef: 3,
+    accuracy: 25,
+    avoid: 11,
+    speed: 100,
+    jump: 100,
+  };
+  bridge.recv(
+    JSON.stringify({ v: 1, t: "statsdetail", json: JSON.stringify(detail) }),
+  );
+  const sd = useGame.getState().statsDetail;
+  expect(sd).not.toBeNull();
+  expect(sd?.str).toBe(12);
+  expect(sd?.ap).toBe(5);
+  expect(sd?.job).toBe("Beginner");
+});
+
+test("recv statsdetail with malformed json does not throw", () => {
+  const { bridge } = makeBridge();
+  useGame.getState().setStatsDetail(null);
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "statsdetail", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().statsDetail).toBeNull();
+});
+
+test("bridge.allocateAp sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.allocateAp("str");
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "allocateAp",
+    stat: "str",
+  });
+});

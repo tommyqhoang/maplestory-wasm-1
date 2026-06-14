@@ -19,3 +19,13 @@ test("setAsset stores a data url under its key", () => {
     "data:image/png;base64,XYZ",
   );
 });
+
+test("toggleWindow flips open state and closeWindow forces closed", () => {
+  useGame.getState().toggleWindow("stats");
+  expect(useGame.getState().openWindows["stats"]).toBe(true);
+  useGame.getState().toggleWindow("stats");
+  expect(useGame.getState().openWindows["stats"]).toBe(false);
+  useGame.getState().toggleWindow("stats");
+  useGame.getState().closeWindow("stats");
+  expect(useGame.getState().openWindows["stats"]).toBe(false);
+});
