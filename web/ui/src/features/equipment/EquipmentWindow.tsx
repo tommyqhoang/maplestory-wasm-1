@@ -1,6 +1,7 @@
 import { useGame } from "../../store/store";
 import type { EquipSlot } from "../../bridge/protocol";
 import { AssetImage } from "../../design/AssetImage";
+import { Tooltip } from "../../design/Tooltip";
 import { Window } from "../../design/Window";
 
 /**
@@ -76,11 +77,13 @@ export function EquipmentBody({ equipment }: { equipment: EquipSlot[] }) {
               }}
             >
               {item && (
-                <AssetImage
-                  assetKey={`equip/${item.itemid}`}
-                  alt={`${label} (${item.itemid})`}
-                  style={{ width: CELL_PX - 8, height: CELL_PX - 8 }}
-                />
+                <Tooltip content={`${label} — Equip #${item.itemid}`}>
+                  <AssetImage
+                    assetKey={`equip/${item.itemid}`}
+                    alt={`${label} (${item.itemid})`}
+                    style={{ width: CELL_PX - 8, height: CELL_PX - 8 }}
+                  />
+                </Tooltip>
               )}
             </div>
             <span

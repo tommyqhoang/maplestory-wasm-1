@@ -1,6 +1,7 @@
 import { useGame } from "../../store/store";
 import type { SkillEntry } from "../../bridge/protocol";
 import { AssetImage } from "../../design/AssetImage";
+import { Tooltip } from "../../design/Tooltip";
 import { Window } from "../../design/Window";
 
 const COLUMNS = 4;
@@ -21,44 +22,56 @@ export function SkillsBody({ skills }: { skills: SkillEntry[] }) {
   }
 
   const cells = skills.map((skill) => (
-    <div
+    <Tooltip
       key={skill.skillid}
-      data-testid="skills-cell"
-      style={{
-        position: "relative",
-        width: CELL_PX,
-        height: CELL_PX,
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid var(--surface-border)",
-        borderRadius: "var(--radius)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+      content={
+        <>
+          Skill #{skill.skillid}
+          {" · Lv "}
+          {skill.masterlevel > 0
+            ? `${skill.level}/${skill.masterlevel}`
+            : skill.level}
+        </>
+      }
     >
-      <AssetImage
-        assetKey={`skill/${skill.skillid}`}
-        alt={`Skill ${skill.skillid}`}
-        style={{ width: CELL_PX - 8, height: CELL_PX - 8 }}
-      />
-      <span
-        data-testid="skills-level"
+      <div
+        data-testid="skills-cell"
         style={{
-          position: "absolute",
-          right: 1,
-          bottom: 0,
-          fontSize: "0.6rem",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          textShadow: "0 0 2px #000, 0 0 2px #000",
-          pointerEvents: "none",
+          position: "relative",
+          width: CELL_PX,
+          height: CELL_PX,
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid var(--surface-border)",
+          borderRadius: "var(--radius)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {skill.masterlevel > 0
-          ? `${skill.level}/${skill.masterlevel}`
-          : skill.level}
-      </span>
-    </div>
+        <AssetImage
+          assetKey={`skill/${skill.skillid}`}
+          alt={`Skill ${skill.skillid}`}
+          style={{ width: CELL_PX - 8, height: CELL_PX - 8 }}
+        />
+        <span
+          data-testid="skills-level"
+          style={{
+            position: "absolute",
+            right: 1,
+            bottom: 0,
+            fontSize: "0.6rem",
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            textShadow: "0 0 2px #000, 0 0 2px #000",
+            pointerEvents: "none",
+          }}
+        >
+          {skill.masterlevel > 0
+            ? `${skill.level}/${skill.masterlevel}`
+            : skill.level}
+        </span>
+      </div>
+    </Tooltip>
   ));
 
   return (

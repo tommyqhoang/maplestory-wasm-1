@@ -2,6 +2,7 @@ import { useGame } from "../../store/store";
 import type { ShopPayload, InventorySlot } from "../../bridge/protocol";
 import { bridge } from "../../bridge/useBridge";
 import { AssetImage } from "../../design/AssetImage";
+import { Tooltip } from "../../design/Tooltip";
 import { Window } from "../../design/Window";
 import { Button } from "../../design/primitives";
 
@@ -82,11 +83,15 @@ export function ShopBody({
                 borderRadius: "var(--radius)",
               }}
             >
-              <AssetImage
-                assetKey={`item/${item.itemid}`}
-                alt={`Item ${item.itemid}`}
-                style={{ width: ICON_PX, height: ICON_PX }}
-              />
+              <Tooltip
+                content={`Item #${item.itemid} · ${formatPrice(item.price)} mesos`}
+              >
+                <AssetImage
+                  assetKey={`item/${item.itemid}`}
+                  alt={`Item ${item.itemid}`}
+                  style={{ width: ICON_PX, height: ICON_PX }}
+                />
+              </Tooltip>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
@@ -153,15 +158,24 @@ export function ShopBody({
                 borderRadius: "var(--radius)",
               }}
             >
-              <AssetImage
-                assetKey={
-                  item.tab === "equip"
-                    ? `equip/${item.itemid}`
-                    : `item/${item.itemid}`
+              <Tooltip
+                content={
+                  <>
+                    Item #{item.itemid}
+                    {item.count > 1 && ` ×${item.count}`}
+                  </>
                 }
-                alt={`Item ${item.itemid}`}
-                style={{ width: ICON_PX, height: ICON_PX }}
-              />
+              >
+                <AssetImage
+                  assetKey={
+                    item.tab === "equip"
+                      ? `equip/${item.itemid}`
+                      : `item/${item.itemid}`
+                  }
+                  alt={`Item ${item.itemid}`}
+                  style={{ width: ICON_PX, height: ICON_PX }}
+                />
+              </Tooltip>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{

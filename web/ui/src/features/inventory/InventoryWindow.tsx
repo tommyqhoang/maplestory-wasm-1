@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useGame } from "../../store/store";
 import type { InventorySlot } from "../../bridge/protocol";
 import { AssetImage } from "../../design/AssetImage";
+import { Tooltip } from "../../design/Tooltip";
 import { Window } from "../../design/Window";
 
 /** Inventory tabs, in display order. Values match the engine's lowercased tab strings. */
@@ -60,32 +61,43 @@ export function InventoryBody({
         }}
       >
         {item && (
-          <>
-            <AssetImage
-              assetKey={
-                tab === "equip" ? `equip/${item.itemid}` : `item/${item.itemid}`
-              }
-              alt={`Item ${item.itemid}`}
-              style={{ width: CELL_PX - 8, height: CELL_PX - 8 }}
-            />
-            {item.count > 1 && (
-              <span
-                data-testid="inventory-count"
-                style={{
-                  position: "absolute",
-                  right: 1,
-                  bottom: 0,
-                  fontSize: "0.6rem",
-                  fontWeight: 700,
-                  color: "var(--text-primary)",
-                  textShadow: "0 0 2px #000, 0 0 2px #000",
-                  pointerEvents: "none",
-                }}
-              >
-                {item.count}
-              </span>
-            )}
-          </>
+          <Tooltip
+            content={
+              <>
+                Item #{item.itemid}
+                {item.count > 1 && ` ×${item.count}`}
+              </>
+            }
+          >
+            <>
+              <AssetImage
+                assetKey={
+                  tab === "equip"
+                    ? `equip/${item.itemid}`
+                    : `item/${item.itemid}`
+                }
+                alt={`Item ${item.itemid}`}
+                style={{ width: CELL_PX - 8, height: CELL_PX - 8 }}
+              />
+              {item.count > 1 && (
+                <span
+                  data-testid="inventory-count"
+                  style={{
+                    position: "absolute",
+                    right: 1,
+                    bottom: 0,
+                    fontSize: "0.6rem",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    textShadow: "0 0 2px #000, 0 0 2px #000",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {item.count}
+                </span>
+              )}
+            </>
+          </Tooltip>
         )}
       </div>,
     );
