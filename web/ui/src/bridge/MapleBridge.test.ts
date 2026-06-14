@@ -253,3 +253,50 @@ test("bridge.allocateAp sends correct command", () => {
     stat: "str",
   });
 });
+
+// Phase 3 Task 3 — inventory & equipment windows
+
+test("recv inventory with one slot populates store.inventory", () => {
+  const { bridge } = makeBridge();
+  const inv = [{ tab: "use", slot: 1, itemid: 2000000, count: 200 }];
+  bridge.recv(
+    JSON.stringify({ v: 1, t: "inventory", json: JSON.stringify(inv) }),
+  );
+  const got = useGame.getState().inventory;
+  expect(got.length).toBe(1);
+  expect(got[0].tab).toBe("use");
+  expect(got[0].itemid).toBe(2000000);
+  expect(got[0].count).toBe(200);
+});
+
+test("recv inventory with malformed json sets store.inventory = [] without throwing", () => {
+  const { bridge } = makeBridge();
+  useGame
+    .getState()
+    .setInventory([{ tab: "use", slot: 1, itemid: 1, count: 1 }]);
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "inventory", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().inventory).toEqual([]);
+});
+
+test("recv equipment with one slot populates store.equipment", () => {
+  const { bridge } = makeBridge();
+  const eq = [{ slot: 5, itemid: 1040002 }];
+  bridge.recv(
+    JSON.stringify({ v: 1, t: "equipment", json: JSON.stringify(eq) }),
+  );
+  const got = useGame.getState().equipment;
+  expect(got.length).toBe(1);
+  expect(got[0].slot).toBe(5);
+  expect(got[0].itemid).toBe(1040002);
+});
+
+test("recv equipment with malformed json sets store.equipment = [] without throwing", () => {
+  const { bridge } = makeBridge();
+  useGame.getState().setEquipment([{ slot: 1, itemid: 1 }]);
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "equipment", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().equipment).toEqual([]);
+});

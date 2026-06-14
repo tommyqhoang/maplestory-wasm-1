@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import type { WorldInfo, CharInfo, StatsDetail } from "../bridge/protocol";
+import type {
+  WorldInfo,
+  CharInfo,
+  StatsDetail,
+  InventorySlot,
+  EquipSlot,
+} from "../bridge/protocol";
 
 export interface Stats {
   hp: number;
@@ -26,6 +32,8 @@ interface GameState {
   characters: CharInfo[];
   assets: Record<string, string>;
   statsDetail: StatsDetail | null;
+  inventory: InventorySlot[];
+  equipment: EquipSlot[];
   openWindows: Record<string, boolean>;
   setScene: (name: string) => void;
   setStats: (s: Stats) => void;
@@ -37,6 +45,8 @@ interface GameState {
   setCharacters: (characters: CharInfo[]) => void;
   setAsset: (key: string, dataUrl: string) => void;
   setStatsDetail: (detail: StatsDetail | null) => void;
+  setInventory: (inventory: InventorySlot[]) => void;
+  setEquipment: (equipment: EquipSlot[]) => void;
   toggleWindow: (name: string) => void;
   closeWindow: (name: string) => void;
 }
@@ -52,6 +62,8 @@ export const useGame = create<GameState>((set) => ({
   characters: [],
   assets: {},
   statsDetail: null,
+  inventory: [],
+  equipment: [],
   openWindows: {},
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
@@ -67,6 +79,8 @@ export const useGame = create<GameState>((set) => ({
   setAsset: (key, dataUrl) =>
     set((state) => ({ assets: { ...state.assets, [key]: dataUrl } })),
   setStatsDetail: (statsDetail) => set({ statsDetail }),
+  setInventory: (inventory) => set({ inventory }),
+  setEquipment: (equipment) => set({ equipment }),
   toggleWindow: (name) =>
     set((state) => ({
       openWindows: { ...state.openWindows, [name]: !state.openWindows[name] },

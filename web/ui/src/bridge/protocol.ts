@@ -89,6 +89,16 @@ export const StatsDetailMsg = z.object({
   t: z.literal("statsdetail"),
   json: z.string(),
 });
+export const InventoryMsg = z.object({
+  ...base,
+  t: z.literal("inventory"),
+  json: z.string(),
+});
+export const EquipmentMsg = z.object({
+  ...base,
+  t: z.literal("equipment"),
+  json: z.string(),
+});
 
 // Parsed payload of StatsDetailMsg.json (engine → TS, detailed Stats window)
 export const StatsDetail = z.object({
@@ -114,6 +124,27 @@ export const StatsDetail = z.object({
   jump: z.number().int(),
 });
 export type StatsDetail = z.infer<typeof StatsDetail>;
+
+// Parsed payload of InventoryMsg.json (engine → TS, DOM Inventory window).
+// tab is one of "equip" | "use" | "setup" | "etc" | "cash" (lowercased).
+export const InventorySlot = z.object({
+  tab: z.string(),
+  slot: z.number().int(),
+  itemid: z.number().int(),
+  count: z.number().int(),
+});
+export type InventorySlot = z.infer<typeof InventorySlot>;
+export const InventoryData = z.array(InventorySlot);
+export type InventoryData = z.infer<typeof InventoryData>;
+
+// Parsed payload of EquipmentMsg.json (engine → TS, DOM Equipment window).
+export const EquipSlot = z.object({
+  slot: z.number().int(),
+  itemid: z.number().int(),
+});
+export type EquipSlot = z.infer<typeof EquipSlot>;
+export const EquipmentData = z.array(EquipSlot);
+export type EquipmentData = z.infer<typeof EquipmentData>;
 
 export const PingMsg = z.object({
   ...base,
@@ -181,6 +212,8 @@ export const InboundMsg = z.discriminatedUnion("t", [
   CharactersMsg,
   AssetMsg,
   StatsDetailMsg,
+  InventoryMsg,
+  EquipmentMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,

@@ -125,6 +125,16 @@
       "fields": [{ "name": "json", "type": "string" }]
     },
     {
+      "type": "inventory",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "equipment",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
       "type": "allocateAp",
       "dir": "in",
       "fields": [{ "name": "stat", "type": "string" }]

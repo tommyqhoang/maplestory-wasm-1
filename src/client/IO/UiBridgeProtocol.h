@@ -21,5 +21,7 @@ constexpr const char* MSG_BACKTOLOGIN = "backToLogin";
 constexpr const char* MSG_REQUESTASSET = "requestAsset";
 constexpr const char* MSG_ASSET = "asset";
 constexpr const char* MSG_STATSDETAIL = "statsdetail";
+constexpr const char* MSG_INVENTORY = "inventory";
+constexpr const char* MSG_EQUIPMENT = "equipment";
 constexpr const char* MSG_ALLOCATEAP = "allocateAp";
 }}

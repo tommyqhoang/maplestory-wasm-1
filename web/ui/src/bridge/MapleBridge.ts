@@ -5,6 +5,8 @@ import {
   WorldInfo,
   CharInfo,
   StatsDetail,
+  InventoryData,
+  EquipmentData,
 } from "./protocol";
 import { z } from "zod";
 import { useGame } from "../store/store";
@@ -164,6 +166,48 @@ export class MapleBridge {
           );
         } else {
           s.setStatsDetail(result.data);
+        }
+        break;
+      }
+      case "inventory": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] inventory: failed to parse json field");
+          s.setInventory([]);
+          break;
+        }
+        const result = InventoryData.safeParse(parsed);
+        if (!result.success) {
+          console.warn(
+            "[bridge] inventory: invalid payload",
+            result.error.issues,
+          );
+          s.setInventory([]);
+        } else {
+          s.setInventory(result.data);
+        }
+        break;
+      }
+      case "equipment": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] equipment: failed to parse json field");
+          s.setEquipment([]);
+          break;
+        }
+        const result = EquipmentData.safeParse(parsed);
+        if (!result.success) {
+          console.warn(
+            "[bridge] equipment: invalid payload",
+            result.error.issues,
+          );
+          s.setEquipment([]);
+        } else {
+          s.setEquipment(result.data);
         }
         break;
       }
