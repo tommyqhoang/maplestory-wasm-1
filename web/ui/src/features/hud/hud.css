@@ -9,7 +9,8 @@
 
 .hud-chat {
   position: fixed;
-  bottom: calc(var(--sp-4) + 110px);
+  /* 190px clears the statusbar (char-row + 3 gauges + menu-row + panel padding ≈ 174px) */
+  bottom: calc(var(--sp-4) + 190px);
   left: var(--sp-4);
   width: min(340px, calc(100vw - 32px));
   z-index: 10;
@@ -26,6 +27,10 @@
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  min-width: 0;
+  /* Ensure the name is always visible even before character data arrives */
+  min-inline-size: 4ch;
 }
 
 .hud-char-job {
@@ -63,7 +68,8 @@
   flex-direction: column;
   gap: 2px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 140, 60, 0.3) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent-orange) 30%, transparent)
+    transparent;
 }
 
 .hud-chat-messages::-webkit-scrollbar {
@@ -75,7 +81,7 @@
 }
 
 .hud-chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 140, 60, 0.35);
+  background: color-mix(in srgb, var(--accent-orange) 35%, transparent);
   border-radius: 2px;
 }
 
@@ -86,15 +92,15 @@
   word-break: break-word;
 }
 
-/* ctype coloring */
+/* ctype coloring (use tokens where available) */
 .hud-chat-line[data-ctype="1"] {
-  color: #ffd966;
+  color: var(--chat-system);
 }
 .hud-chat-line[data-ctype="2"] {
-  color: #88d8b0;
+  color: var(--chat-party);
 }
 .hud-chat-line[data-ctype="3"] {
-  color: #ff9eb5;
+  color: var(--chat-guild);
 }
 .hud-chat-line[data-ctype="4"] {
   color: var(--accent-orange);
@@ -119,7 +125,9 @@
 }
 
 .hud-chat-input:focus {
-  border-color: rgba(255, 140, 60, 0.55);
+  border-color: color-mix(in srgb, var(--accent-orange) 55%, transparent);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--accent-orange) 12%, transparent);
 }
 
 .hud-chat-input::placeholder {
