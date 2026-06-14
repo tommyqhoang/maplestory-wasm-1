@@ -46,4 +46,16 @@
 
   /* Shadow */
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.4);
+
+  /* Motion */
+  --motion-fast: 120ms;
+  --motion-med: 200ms;
+  --motion-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-med: 0ms;
+  }
 }

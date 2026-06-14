@@ -201,6 +201,7 @@ export function NpcDialog() {
   return (
     <div
       data-testid="npc-dialog"
+      className="maple-modal-backdrop"
       style={{
         position: "absolute",
         inset: 0,

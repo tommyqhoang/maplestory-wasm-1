@@ -7,6 +7,74 @@
 #maple-ui-root .ui-interactive {
   pointer-events: auto;
 }
+
+/* ---- Motion keyframes ------------------------------------------------- */
+@keyframes maple-window-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes maple-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes maple-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ---- Window open animation -------------------------------------------- */
+.maple-window {
+  animation: maple-window-in var(--motion-fast) var(--motion-ease) both;
+}
+
+/* ---- Button motion ---------------------------------------------------- */
+.maple-btn {
+  transition:
+    background var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+.maple-btn:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* ---- Modal backdrop --------------------------------------------------- */
+.maple-modal-backdrop {
+  animation: maple-backdrop-in var(--motion-med) var(--motion-ease) both;
+}
+.maple-modal-backdrop > * {
+  animation: maple-window-in var(--motion-med) var(--motion-ease) both;
+}
+
+/* ---- Reduced-motion overrides ----------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .maple-window,
+  .maple-btn,
+  .maple-modal-backdrop,
+  .maple-modal-backdrop > * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
 .phase0-probe {
   position: fixed;
   top: 12px;

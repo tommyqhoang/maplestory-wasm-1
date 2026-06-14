@@ -98,6 +98,7 @@ export function Window({
               lineHeight: 1,
               cursor: "pointer",
               padding: "0 var(--sp-1)",
+              transition: "color var(--motion-fast) var(--motion-ease)",
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLButtonElement).style.color =
