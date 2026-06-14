@@ -93,7 +93,9 @@ async function closeWindow(page: Page): Promise<void> {
   // Native click bypasses Playwright actionability checks and canvas overlay.
   await page.evaluate(() => {
     const btns = Array.from(
-      document.querySelectorAll<HTMLButtonElement>('button[aria-label="Close"]'),
+      document.querySelectorAll<HTMLButtonElement>(
+        'button[aria-label="Close"]',
+      ),
     );
     btns[btns.length - 1]?.click();
   });
