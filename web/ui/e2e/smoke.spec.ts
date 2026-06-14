@@ -37,42 +37,6 @@ function resetLoginFlag(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Full DOM entry flow: login → world select → channel → char select → in-game.
-// ---------------------------------------------------------------------------
-async function loginToIngame(page: Page): Promise<void> {
-  await page.goto("/");
-
-  await expect(page.locator('[data-testid="login-account"]')).toBeVisible({
-    timeout: 30000,
-  });
-
-  await page.locator('[data-testid="login-account"]').fill("wasmteswasmt");
-  await page.locator('[data-testid="login-password"]').fill("test1234");
-  await page.locator('[data-testid="login-submit"]').click();
-
-  // World select.
-  const firstWorldBtn = page.locator('[data-testid^="world-"]').first();
-  await expect(firstWorldBtn).toBeVisible({ timeout: 20000 });
-  await firstWorldBtn.click();
-
-  // Channel select.
-  const firstChannelBtn = page.locator('[data-testid^="channel-"]').first();
-  await expect(firstChannelBtn).toBeVisible({ timeout: 10000 });
-  await firstChannelBtn.click();
-
-  // Character select.
-  const firstCharCard = page.locator('[data-testid^="char-"]').first();
-  await expect(firstCharCard).toBeVisible({ timeout: 20000 });
-  await firstCharCard.click();
-  await page.locator('[data-testid="char-start"]').click();
-
-  // Wait for HUD to appear (confirms in-game state).
-  await expect(page.locator('[data-testid="hud-hp"]')).toBeVisible({
-    timeout: 30000,
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Click a HUD menu button by label text. Falls back to native DOM click if
 // the canvas overlay intercepts pointer events.
 // ---------------------------------------------------------------------------
