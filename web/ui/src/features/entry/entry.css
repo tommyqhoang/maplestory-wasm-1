@@ -1,0 +1,365 @@
+/* ---- Entry backdrop ---------------------------------------------------- */
+.entry-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Warm maple gradient: deep dark-brown → near-black with amber undertone */
+  background:
+    radial-gradient(
+      ellipse at 50% 35%,
+      rgba(80, 30, 10, 0.65) 0%,
+      transparent 70%
+    ),
+    linear-gradient(160deg, #0e0906 0%, #1a0f08 45%, #0b0806 100%);
+}
+
+.entry-backdrop__overlay {
+  position: absolute;
+  inset: 0;
+  /* Subtle leaf-pattern noise overlay via repeating gradient */
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 120px,
+    rgba(255, 140, 60, 0.018) 120px,
+    rgba(255, 140, 60, 0.018) 121px
+  );
+  pointer-events: none;
+}
+
+.entry-backdrop__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Shared entry card layout ----------------------------------------- */
+.entry-card {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.entry-logo {
+  text-align: center;
+  margin-bottom: var(--sp-2);
+}
+
+.entry-logo__title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-orange);
+  text-shadow:
+    0 2px 16px rgba(255, 140, 60, 0.45),
+    0 0 40px rgba(255, 82, 82, 0.25);
+  font-family: var(--font);
+  margin: 0;
+}
+
+.entry-logo__sub {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: var(--sp-1);
+}
+
+/* ---- Form fields ------------------------------------------------------- */
+.entry-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.entry-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.entry-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  padding: var(--sp-2) var(--sp-3);
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.entry-input:focus {
+  border-color: rgba(255, 140, 60, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 140, 60, 0.12);
+}
+
+.entry-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ---- Error message ----------------------------------------------------- */
+.entry-error {
+  font-size: 0.82rem;
+  color: var(--accent);
+  background: rgba(255, 82, 82, 0.1);
+  border: 1px solid rgba(255, 82, 82, 0.25);
+  border-radius: var(--radius);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+/* ---- Action row -------------------------------------------------------- */
+.entry-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-direction: column;
+}
+
+/* ---- World select ------------------------------------------------------ */
+.world-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 140, 60, 0.2) transparent;
+}
+
+.world-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-border);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  text-align: left;
+  width: 100%;
+  font-family: var(--font);
+  color: var(--text-primary);
+}
+
+.world-item:hover {
+  border-color: rgba(255, 140, 60, 0.4);
+  background: rgba(255, 140, 60, 0.06);
+}
+
+.world-item.selected {
+  border-color: var(--accent-orange);
+  background: rgba(255, 140, 60, 0.1);
+}
+
+.world-item__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.world-item__meta {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.world-item__load {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-left: var(--sp-3);
+}
+
+/* ---- Channel grid ------------------------------------------------------ */
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: var(--sp-2);
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 140, 60, 0.2) transparent;
+}
+
+.channel-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  padding: var(--sp-2);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  text-align: center;
+}
+
+.channel-btn:hover {
+  border-color: rgba(255, 140, 60, 0.4);
+  background: rgba(255, 140, 60, 0.08);
+  color: var(--accent-orange);
+}
+
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-1);
+}
+
+/* ---- Char select ------------------------------------------------------- */
+.char-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  justify-content: center;
+  max-height: 380px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 140, 60, 0.2) transparent;
+}
+
+.char-card {
+  width: 148px;
+  padding: var(--sp-3);
+  cursor: pointer;
+  pointer-events: auto;
+  border: 1px solid var(--surface-border);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s;
+  text-align: center;
+  position: relative;
+}
+
+.char-card:hover {
+  border-color: rgba(255, 140, 60, 0.4);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.char-card.selected {
+  border-color: var(--accent-orange);
+  box-shadow:
+    0 0 0 2px rgba(255, 140, 60, 0.35),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.char-card__name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  margin-bottom: var(--sp-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.char-card__level {
+  font-size: 0.8rem;
+  color: var(--accent-orange);
+  font-weight: 600;
+}
+
+.char-card__job {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  margin-bottom: var(--sp-2);
+}
+
+.char-card__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px var(--sp-1);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--surface-border);
+  padding-top: var(--sp-1);
+  margin-top: var(--sp-2);
+  text-align: left;
+}
+
+.char-card__stat span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ---- Empty state ------------------------------------------------------- */
+.entry-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: var(--sp-5) var(--sp-3);
+}
+
+/* ---- Loading spinner --------------------------------------------------- */
+.entry-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.entry-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 140, 60, 0.15);
+  border-top-color: var(--accent-orange);
+  border-radius: 50%;
+  animation: entry-spin 0.75s linear infinite;
+}
+
+@keyframes entry-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Wide card variant (worldselect / charselect) ---------------------- */
+.entry-card--wide {
+  max-width: 600px;
+}
+
+/* ---- Body scene visibility --------------------------------------------- */
+/* When not ingame, hide the canvas container */
+body:not([data-scene="ingame"]) #container {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* When ingame, only the HUD overlays the canvas */
+body[data-scene="ingame"] #container {
+  visibility: visible;
+}
