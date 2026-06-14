@@ -1,0 +1,38 @@
+:root {
+  /* Font stack */
+  --font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Surface / panel */
+  --surface: rgba(18, 14, 10, 0.82);
+  --surface-border: rgba(255, 140, 60, 0.18);
+
+  /* Text */
+  --text-primary: #f5ede0;
+  --text-secondary: #c4a882;
+  --text-muted: #7a6a56;
+
+  /* Accents */
+  --accent: #ff5252;
+  --accent-hover: #ff7070;
+  --accent-active: #e03030;
+  --accent-orange: #ff8c3c;
+
+  /* Gauge colors */
+  --gauge-hp: #e5484d;
+  --gauge-mp: #3b82f6;
+  --gauge-exp: #f5a623;
+
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+
+  /* Radius */
+  --radius: 8px;
+  --radius-lg: 14px;
+
+  /* Shadow */
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.4);
+}
