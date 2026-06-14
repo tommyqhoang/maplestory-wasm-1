@@ -6,6 +6,7 @@ import { InventoryWindow } from "../inventory/InventoryWindow";
 import { EquipmentWindow } from "../equipment/EquipmentWindow";
 import { SkillsWindow } from "../skills/SkillsWindow";
 import { NpcDialog } from "../npc/NpcDialog";
+import { Shop } from "../shop/Shop";
 
 export function Hud() {
   return (
@@ -17,6 +18,7 @@ export function Hud() {
       <EquipmentWindow />
       <SkillsWindow />
       <NpcDialog />
+      <Shop />
     </>
   );
 }
