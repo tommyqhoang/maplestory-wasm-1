@@ -5,6 +5,7 @@ import { StatsWindow } from "../stats/StatsWindow";
 import { InventoryWindow } from "../inventory/InventoryWindow";
 import { EquipmentWindow } from "../equipment/EquipmentWindow";
 import { SkillsWindow } from "../skills/SkillsWindow";
+import { NpcDialog } from "../npc/NpcDialog";
 
 export function Hud() {
   return (
@@ -15,6 +16,7 @@ export function Hud() {
       <InventoryWindow />
       <EquipmentWindow />
       <SkillsWindow />
+      <NpcDialog />
     </>
   );
 }
