@@ -36,8 +36,12 @@ export class MapleBridge {
     switch (msg.t) {
       case "stats":
         s.setStats({
-          hp: msg.hp, maxHp: msg.maxHp, mp: msg.mp, maxMp: msg.maxMp,
-          level: msg.level, exp: msg.exp,
+          hp: msg.hp,
+          maxHp: msg.maxHp,
+          mp: msg.mp,
+          maxMp: msg.maxMp,
+          level: msg.level,
+          exp: msg.exp,
         });
         break;
       case "scene":

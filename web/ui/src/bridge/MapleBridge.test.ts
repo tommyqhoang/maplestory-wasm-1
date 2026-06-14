@@ -9,7 +9,18 @@ function makeBridge() {
 
 test("recv routes a valid stats message into the store", () => {
   const { bridge } = makeBridge();
-  bridge.recv(JSON.stringify({ v: 1, t: "stats", hp: 30, maxHp: 50, mp: 2, maxMp: 5, level: 3, exp: 12 }));
+  bridge.recv(
+    JSON.stringify({
+      v: 1,
+      t: "stats",
+      hp: 30,
+      maxHp: 50,
+      mp: 2,
+      maxMp: 5,
+      level: 3,
+      exp: 12,
+    }),
+  );
   expect(useGame.getState().stats.hp).toBe(30);
   expect(useGame.getState().stats.level).toBe(3);
 });
@@ -23,7 +34,9 @@ test("recv routes scene", () => {
 test("recv ignores malformed messages without throwing", () => {
   const { bridge } = makeBridge();
   expect(() => bridge.recv("{ not json")).not.toThrow();
-  expect(() => bridge.recv(JSON.stringify({ v: 1, t: "stats", hp: "x" }))).not.toThrow();
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "stats", hp: "x" })),
+  ).not.toThrow();
 });
 
 test("send validates and forwards a ping command as json", () => {

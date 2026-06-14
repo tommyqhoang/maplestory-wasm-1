@@ -1,7 +1,12 @@
 import { create } from "zustand";
 
 export interface Stats {
-  hp: number; maxHp: number; mp: number; maxMp: number; level: number; exp: number;
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  level: number;
+  exp: number;
 }
 
 interface GameState {

@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const spec = JSON.parse(readFileSync(resolve(here, "../src/bridge/protocol.spec.json"), "utf8"));
+const spec = JSON.parse(
+  readFileSync(resolve(here, "../src/bridge/protocol.spec.json"), "utf8"),
+);
 
 const lines = [
   "// AUTO-GENERATED from web/ui/src/bridge/protocol.spec.json — do not edit by hand.",

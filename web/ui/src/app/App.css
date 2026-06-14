@@ -11,7 +11,9 @@
   position: fixed;
   top: 12px;
   left: 12px;
-  font: 13px/1.4 system-ui, sans-serif;
+  font:
+    13px/1.4 system-ui,
+    sans-serif;
   color: #fff;
   background: rgba(10, 13, 19, 0.8);
   border: 1px solid #2a3140;
