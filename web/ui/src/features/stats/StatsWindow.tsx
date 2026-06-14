@@ -2,6 +2,7 @@ import { useGame } from "../../store/store";
 import type { StatsDetail } from "../../bridge/protocol";
 import { bridge } from "../../bridge/useBridge";
 import { Window } from "../../design/Window";
+import { IconButton } from "../../design/primitives";
 
 /** Primary stats that can have AP allocated to them. */
 const PRIMARY: Array<{ key: "str" | "dex" | "int" | "luk"; label: string }> = [
@@ -47,26 +48,9 @@ function Row({
       >
         <span data-testid={testId}>{value}</span>
         {onAllocate && (
-          <button
-            className="ui-interactive"
-            aria-label={`Allocate AP to ${label}`}
-            onClick={onAllocate}
-            style={{
-              background: "var(--accent)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "var(--radius)",
-              width: "18px",
-              height: "18px",
-              lineHeight: 1,
-              fontSize: "0.8rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              padding: 0,
-            }}
-          >
+          <IconButton onClick={onAllocate} label={`Allocate AP to ${label}`}>
             +
-          </button>
+          </IconButton>
         )}
       </span>
     </div>
