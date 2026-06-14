@@ -18,7 +18,11 @@ export default defineConfig({
   plugins: [react()],
   server: { port: 5173, headers: COOP_COEP, proxy },
   preview: { headers: COOP_COEP },
-  test: { environment: "jsdom", globals: true },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    exclude: ["e2e/**", "node_modules/**"],
+  },
   define: {
     // Required for React and Zod to run correctly in lib/IIFE mode where
     // Vite does not automatically inject process.env.NODE_ENV.
