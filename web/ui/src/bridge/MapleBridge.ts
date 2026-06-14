@@ -8,6 +8,7 @@ import {
   InventoryData,
   EquipmentData,
   SkillsData,
+  NpcDialogPayload,
 } from "./protocol";
 import { z } from "zod";
 import { useGame } from "../store/store";
@@ -76,6 +77,16 @@ export class MapleBridge {
 
   allocateAp(stat: string): void {
     this.send({ v: PROTOCOL_VERSION, t: "allocateAp", stat });
+  }
+
+  npcRespond(action: string, selection = 0, text = ""): void {
+    this.send({
+      v: PROTOCOL_VERSION,
+      t: "npcRespond",
+      action,
+      selection,
+      text,
+    });
   }
 
   private route(msg: InboundMsg): void {
@@ -227,6 +238,30 @@ export class MapleBridge {
           s.setSkills([]);
         } else {
           s.setSkills(result.data);
+        }
+        break;
+      }
+      case "npcDialog": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] npcDialog: failed to parse json field");
+          s.setNpcDialog(null);
+          break;
+        }
+        const result = NpcDialogPayload.safeParse(parsed);
+        if (!result.success) {
+          console.warn(
+            "[bridge] npcDialog: invalid payload",
+            result.error.issues,
+          );
+          s.setNpcDialog(null);
+        } else if (!result.data.active) {
+          // active:false means "no dialog" — clear the store.
+          s.setNpcDialog(null);
+        } else {
+          s.setNpcDialog(result.data);
         }
         break;
       }

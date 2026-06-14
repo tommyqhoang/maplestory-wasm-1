@@ -321,3 +321,72 @@ test("recv skills with malformed json sets store.skills = [] without throwing", 
   ).not.toThrow();
   expect(useGame.getState().skills).toEqual([]);
 });
+
+// Phase 4 Task 1 — NPC dialogue modal
+
+test("recv npcDialog active populates store.npcDialog", () => {
+  const { bridge } = makeBridge();
+  const payload = {
+    active: true,
+    npcid: 9000000,
+    mode: "selection",
+    text: "Pick one:",
+    selections: [
+      { idx: 0, label: "First" },
+      { idx: 1, label: "Second" },
+    ],
+  };
+  bridge.recv(
+    JSON.stringify({ v: 1, t: "npcDialog", json: JSON.stringify(payload) }),
+  );
+  const nd = useGame.getState().npcDialog;
+  expect(nd).not.toBeNull();
+  expect(nd?.active).toBe(true);
+  expect(nd?.mode).toBe("selection");
+  expect(nd?.selections?.length).toBe(2);
+  expect(nd?.selections?.[1].label).toBe("Second");
+});
+
+test("recv npcDialog active:false clears store.npcDialog", () => {
+  const { bridge } = makeBridge();
+  useGame.getState().setNpcDialog({
+    active: true,
+    npcid: 1,
+    mode: "ok",
+    text: "hi",
+  });
+  bridge.recv(
+    JSON.stringify({
+      v: 1,
+      t: "npcDialog",
+      json: JSON.stringify({ active: false, mode: "" }),
+    }),
+  );
+  expect(useGame.getState().npcDialog).toBeNull();
+});
+
+test("recv npcDialog with malformed json clears without throwing", () => {
+  const { bridge } = makeBridge();
+  useGame.getState().setNpcDialog({
+    active: true,
+    npcid: 1,
+    mode: "ok",
+    text: "hi",
+  });
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "npcDialog", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().npcDialog).toBeNull();
+});
+
+test("bridge.npcRespond sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.npcRespond("select", 2, "");
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "npcRespond",
+    action: "select",
+    selection: 2,
+    text: "",
+  });
+});

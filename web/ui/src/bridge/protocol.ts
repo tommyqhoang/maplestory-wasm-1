@@ -104,6 +104,11 @@ export const SkillsMsg = z.object({
   t: z.literal("skills"),
   json: z.string(),
 });
+export const NpcDialogMsg = z.object({
+  ...base,
+  t: z.literal("npcDialog"),
+  json: z.string(),
+});
 
 // Parsed payload of StatsDetailMsg.json (engine → TS, detailed Stats window)
 export const StatsDetail = z.object({
@@ -161,6 +166,24 @@ export type SkillEntry = z.infer<typeof SkillEntry>;
 export const SkillsData = z.array(SkillEntry);
 export type SkillsData = z.infer<typeof SkillsData>;
 
+// Parsed payload of NpcDialogMsg.json (engine → TS, DOM NPC dialogue modal).
+// active:false (or a null payload) means "no dialog". mode is one of the
+// stable strings emitted by the engine: ok/next/nextprev/yesno/acceptdecline/
+// textentry/selection. selections is present for the "selection" mode.
+export const NpcDialogSelection = z.object({
+  idx: z.number().int(),
+  label: z.string(),
+});
+export type NpcDialogSelection = z.infer<typeof NpcDialogSelection>;
+export const NpcDialogPayload = z.object({
+  active: z.boolean(),
+  npcid: z.number().int().optional().default(0),
+  mode: z.string(),
+  text: z.string().optional().default(""),
+  selections: z.array(NpcDialogSelection).optional(),
+});
+export type NpcDialogPayload = z.infer<typeof NpcDialogPayload>;
+
 export const PingMsg = z.object({
   ...base,
   t: z.literal("ping"),
@@ -215,6 +238,13 @@ export const AllocateApCmd = z.object({
   t: z.literal("allocateAp"),
   stat: z.string(),
 });
+export const NpcRespondCmd = z.object({
+  ...base,
+  t: z.literal("npcRespond"),
+  action: z.string(),
+  selection: z.number().int(),
+  text: z.string(),
+});
 
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
@@ -230,6 +260,7 @@ export const InboundMsg = z.discriminatedUnion("t", [
   InventoryMsg,
   EquipmentMsg,
   SkillsMsg,
+  NpcDialogMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,
@@ -242,6 +273,7 @@ export const OutboundCmd = z.discriminatedUnion("t", [
   BackToLoginCmd,
   RequestAssetCmd,
   AllocateApCmd,
+  NpcRespondCmd,
 ]);
 
 export type InboundMsg = z.infer<typeof InboundMsg>;

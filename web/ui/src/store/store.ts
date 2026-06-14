@@ -6,6 +6,7 @@ import type {
   InventorySlot,
   EquipSlot,
   SkillEntry,
+  NpcDialogPayload,
 } from "../bridge/protocol";
 
 export interface Stats {
@@ -36,6 +37,7 @@ interface GameState {
   inventory: InventorySlot[];
   equipment: EquipSlot[];
   skills: SkillEntry[];
+  npcDialog: NpcDialogPayload | null;
   openWindows: Record<string, boolean>;
   setScene: (name: string) => void;
   setStats: (s: Stats) => void;
@@ -50,6 +52,7 @@ interface GameState {
   setInventory: (inventory: InventorySlot[]) => void;
   setEquipment: (equipment: EquipSlot[]) => void;
   setSkills: (skills: SkillEntry[]) => void;
+  setNpcDialog: (dialog: NpcDialogPayload | null) => void;
   toggleWindow: (name: string) => void;
   closeWindow: (name: string) => void;
 }
@@ -68,6 +71,7 @@ export const useGame = create<GameState>((set) => ({
   inventory: [],
   equipment: [],
   skills: [],
+  npcDialog: null,
   openWindows: {},
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
@@ -86,6 +90,7 @@ export const useGame = create<GameState>((set) => ({
   setInventory: (inventory) => set({ inventory }),
   setEquipment: (equipment) => set({ equipment }),
   setSkills: (skills) => set({ skills }),
+  setNpcDialog: (npcDialog) => set({ npcDialog }),
   toggleWindow: (name) =>
     set((state) => ({
       openWindows: { ...state.openWindows, [name]: !state.openWindows[name] },

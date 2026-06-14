@@ -25,4 +25,6 @@ constexpr const char* MSG_INVENTORY = "inventory";
 constexpr const char* MSG_EQUIPMENT = "equipment";
 constexpr const char* MSG_SKILLS = "skills";
 constexpr const char* MSG_ALLOCATEAP = "allocateAp";
+constexpr const char* MSG_NPCDIALOG = "npcDialog";
+constexpr const char* MSG_NPCRESPOND = "npcRespond";
 }}

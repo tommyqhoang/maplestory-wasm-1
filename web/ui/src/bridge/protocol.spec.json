@@ -143,6 +143,20 @@
       "type": "allocateAp",
       "dir": "in",
       "fields": [{ "name": "stat", "type": "string" }]
+    },
+    {
+      "type": "npcDialog",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "npcRespond",
+      "dir": "in",
+      "fields": [
+        { "name": "action", "type": "string" },
+        { "name": "selection", "type": "int" },
+        { "name": "text", "type": "string" }
+      ]
     }
   ]
 }
