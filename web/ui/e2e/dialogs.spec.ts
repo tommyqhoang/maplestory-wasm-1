@@ -108,9 +108,7 @@ async function installCcallSpy(page: Page): Promise<void> {
 // ---------------------------------------------------------------------------
 async function getCcallLog(page: Page): Promise<unknown[][]> {
   return page.evaluate(() => {
-    return (
-      window as unknown as { __ccallLog: unknown[][] }
-    ).__ccallLog;
+    return (window as unknown as { __ccallLog: unknown[][] }).__ccallLog;
   });
 }
 
@@ -241,8 +239,7 @@ test("NPC selection dialog: renders selection buttons; click Option B records se
   const log = await getCcallLog(page);
   const found = findBridgeCall(
     log,
-    (p) =>
-      p.t === "npcRespond" && p.action === "select" && p.selection === 1,
+    (p) => p.t === "npcRespond" && p.action === "select" && p.selection === 1,
   );
   expect(
     found,
@@ -294,9 +291,10 @@ test("Shop window: renders with Buy button and Exit; clicks record shopAction ca
     buyLog,
     (p) => p.t === "shopAction" && p.action === "buy",
   );
-  expect(buyFound, "Expected maple_bridge_send(shopAction,buy) in ccall log").toBe(
-    true,
-  );
+  expect(
+    buyFound,
+    "Expected maple_bridge_send(shopAction,buy) in ccall log",
+  ).toBe(true);
 
   // Reset spy log, then click Exit.
   await page.evaluate(() => {
@@ -312,7 +310,8 @@ test("Shop window: renders with Buy button and Exit; clicks record shopAction ca
     exitLog,
     (p) => p.t === "shopAction" && p.action === "exit",
   );
-  expect(exitFound, "Expected maple_bridge_send(shopAction,exit) in ccall log").toBe(
-    true,
-  );
+  expect(
+    exitFound,
+    "Expected maple_bridge_send(shopAction,exit) in ccall log",
+  ).toBe(true);
 });
