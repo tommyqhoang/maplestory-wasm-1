@@ -2,6 +2,7 @@ import { useGame } from "../../store/store";
 import type { NpcDialogPayload } from "../../bridge/protocol";
 import { bridge } from "../../bridge/useBridge";
 import { Panel, Button } from "../../design/primitives";
+import "../entry/entry.css";
 
 /**
  * Pure presentational body of the NPC dialogue modal. Exported separately so it
@@ -182,17 +183,8 @@ function NpcTextEntry({
       <input
         name="npc-text"
         data-testid="npc-text-input"
-        className="ui-interactive"
-        style={{
-          flex: 1,
-          background: "rgba(0,0,0,0.35)",
-          border: "1px solid var(--surface-border)",
-          borderRadius: "var(--radius)",
-          color: "var(--text-primary)",
-          fontFamily: "var(--font)",
-          fontSize: "0.85rem",
-          padding: "var(--sp-1) var(--sp-2)",
-        }}
+        className="entry-input ui-interactive"
+        style={{ flex: 1 }}
       />
       <Button onClick={() => {}} testId="npc-btn-ok">
         OK
