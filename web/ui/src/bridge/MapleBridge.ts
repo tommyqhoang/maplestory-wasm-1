@@ -10,6 +10,8 @@ import {
   SkillsData,
   NpcDialogPayload,
   ShopPayload,
+  BuffsData,
+  NoticePayload,
 } from "./protocol";
 import { z } from "zod";
 import { useGame } from "../store/store";
@@ -295,6 +297,40 @@ export class MapleBridge {
           s.setShop(null);
         } else {
           s.setShop(result.data);
+        }
+        break;
+      }
+      case "buffs": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] buffs: failed to parse json field");
+          s.setBuffs([]);
+          break;
+        }
+        const result = BuffsData.safeParse(parsed);
+        if (!result.success) {
+          console.warn("[bridge] buffs: invalid payload", result.error.issues);
+          s.setBuffs([]);
+        } else {
+          s.setBuffs(result.data);
+        }
+        break;
+      }
+      case "notice": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] notice: failed to parse json field");
+          break;
+        }
+        const result = NoticePayload.safeParse(parsed);
+        if (!result.success) {
+          console.warn("[bridge] notice: invalid payload", result.error.issues);
+        } else {
+          s.pushNotice(result.data.text, result.data.ntype);
         }
         break;
       }

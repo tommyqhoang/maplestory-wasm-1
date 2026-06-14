@@ -464,3 +464,91 @@ test("bridge.shopAction exit uses defaults", () => {
     quantity: 1,
   });
 });
+
+// Phase 5 Task 3 — buffs + notice routing
+
+test("recv buffs with valid json populates store.buffs", () => {
+  const { bridge } = makeBridge();
+  const buffsJson = JSON.stringify([
+    { skillid: 1001003, duration: 200000 },
+    { skillid: 1101006, duration: 30000 },
+  ]);
+  bridge.recv(JSON.stringify({ v: 1, t: "buffs", json: buffsJson }));
+  const buffs = useGame.getState().buffs;
+  expect(buffs.length).toBe(2);
+  expect(buffs[0].skillid).toBe(1001003);
+  expect(buffs[0].duration).toBe(200000);
+});
+
+test("recv buffs with malformed json is safe and clears buffs", () => {
+  const { bridge } = makeBridge();
+  // Seed a buff so we can observe the reset.
+  bridge.recv(
+    JSON.stringify({
+      v: 1,
+      t: "buffs",
+      json: JSON.stringify([{ skillid: 1, duration: 1 }]),
+    }),
+  );
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "buffs", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().buffs).toEqual([]);
+});
+
+test("recv notice pushes a toast with the text", () => {
+  // Start from a clean notice list.
+  useGame.setState({ notices: [] });
+  const { bridge } = makeBridge();
+  bridge.recv(
+    JSON.stringify({
+      v: 1,
+      t: "notice",
+      json: JSON.stringify({ text: "Welcome to Maple", ntype: "system" }),
+    }),
+  );
+  const notices = useGame.getState().notices;
+  expect(notices.length).toBe(1);
+  expect(notices[0].text).toBe("Welcome to Maple");
+  expect(notices[0].ntype).toBe("system");
+});
+
+test("recv notice defaults ntype to system when omitted", () => {
+  useGame.setState({ notices: [] });
+  const { bridge } = makeBridge();
+  bridge.recv(
+    JSON.stringify({
+      v: 1,
+      t: "notice",
+      json: JSON.stringify({ text: "Server restarting" }),
+    }),
+  );
+  const notices = useGame.getState().notices;
+  expect(notices[0].ntype).toBe("system");
+});
+
+test("recv notice with malformed json is safe", () => {
+  useGame.setState({ notices: [] });
+  const { bridge } = makeBridge();
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "notice", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().notices).toEqual([]);
+});
+
+test("notices list is capped", () => {
+  useGame.setState({ notices: [] });
+  const { bridge } = makeBridge();
+  for (let i = 0; i < 10; i++) {
+    bridge.recv(
+      JSON.stringify({
+        v: 1,
+        t: "notice",
+        json: JSON.stringify({ text: `n${i}`, ntype: "system" }),
+      }),
+    );
+  }
+  const notices = useGame.getState().notices;
+  expect(notices.length).toBeLessThanOrEqual(5);
+  expect(notices[notices.length - 1].text).toBe("n9");
+});

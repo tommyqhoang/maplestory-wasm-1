@@ -8,7 +8,14 @@ import type {
   SkillEntry,
   NpcDialogPayload,
   ShopPayload,
+  BuffEntry,
 } from "../bridge/protocol";
+
+export interface Notice {
+  id: number;
+  text: string;
+  ntype: string;
+}
 
 export interface Stats {
   hp: number;
@@ -40,6 +47,8 @@ interface GameState {
   skills: SkillEntry[];
   npcDialog: NpcDialogPayload | null;
   shop: ShopPayload | null;
+  buffs: BuffEntry[];
+  notices: Notice[];
   openWindows: Record<string, boolean>;
   setScene: (name: string) => void;
   setStats: (s: Stats) => void;
@@ -56,9 +65,19 @@ interface GameState {
   setSkills: (skills: SkillEntry[]) => void;
   setNpcDialog: (dialog: NpcDialogPayload | null) => void;
   setShop: (shop: ShopPayload | null) => void;
+  setBuffs: (buffs: BuffEntry[]) => void;
+  pushNotice: (text: string, ntype: string) => void;
+  dismissNotice: (id: number) => void;
   toggleWindow: (name: string) => void;
   closeWindow: (name: string) => void;
 }
+
+// Monotonic id source for toast notices. Module-level so ids stay unique
+// across the lifetime of the page even as the list is capped/dismissed.
+let nextNoticeId = 1;
+
+// Most recent toasts kept in the store; older ones are dropped past this cap.
+const MAX_NOTICES = 5;
 
 export const useGame = create<GameState>((set) => ({
   scene: "loading",
@@ -76,6 +95,8 @@ export const useGame = create<GameState>((set) => ({
   skills: [],
   npcDialog: null,
   shop: null,
+  buffs: [],
+  notices: [],
   openWindows: {},
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
@@ -96,6 +117,17 @@ export const useGame = create<GameState>((set) => ({
   setSkills: (skills) => set({ skills }),
   setNpcDialog: (npcDialog) => set({ npcDialog }),
   setShop: (shop) => set({ shop }),
+  setBuffs: (buffs) => set({ buffs }),
+  pushNotice: (text, ntype) =>
+    set((state) => ({
+      notices: [...state.notices, { id: nextNoticeId++, text, ntype }].slice(
+        -MAX_NOTICES,
+      ),
+    })),
+  dismissNotice: (id) =>
+    set((state) => ({
+      notices: state.notices.filter((n) => n.id !== id),
+    })),
   toggleWindow: (name) =>
     set((state) => ({
       openWindows: { ...state.openWindows, [name]: !state.openWindows[name] },
