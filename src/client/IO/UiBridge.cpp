@@ -2,12 +2,14 @@
 #include "UiBridgeProtocol.h"
 
 #include "UI.h"
+#include "KeyAction.h"
 
 #include "../Console.h"
 #include "../Constants.h"
 #include "../Character/CharStats.h"
 #include "../Character/Player.h"
 #include "../Gameplay/Stage.h"
+#include "../Net/Packets/MessagingPackets.h"
 
 #include "json/json.hpp"
 
@@ -50,6 +52,24 @@ namespace jrc
         push(j.dump());
     }
 
+    void UiBridge::emit_character(const std::string& name, const std::string& job)
+    {
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_CHARACTER},
+            {"name", name}, {"job", job}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_chat(const std::string& line, int ctype)
+    {
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_CHAT},
+            {"line", line}, {"ctype", ctype}
+        };
+        push(j.dump());
+    }
+
     void UiBridge::emit_pong(int nonce)
     {
         json j = { {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_PONG}, {"nonce", nonce} };
@@ -69,6 +89,34 @@ namespace jrc
         {
             int nonce = j.value("nonce", 0);
             emit_pong(nonce);
+        }
+        else if (t == bridge::MSG_OPENWINDOW)
+        {
+            const std::string window = j.value("window", std::string());
+            if (window == "stats")
+            {
+                UI::get().send_menu(KeyAction::CHARSTATS);
+            }
+            else if (window == "inventory")
+            {
+                UI::get().send_menu(KeyAction::INVENTORY);
+            }
+            else if (window == "equips")
+            {
+                UI::get().send_menu(KeyAction::EQUIPS);
+            }
+            else if (window == "skills")
+            {
+                UI::get().send_menu(KeyAction::SKILLBOOK);
+            }
+        }
+        else if (t == bridge::MSG_SENDCHAT)
+        {
+            const std::string text = j.value("text", std::string());
+            if (!text.empty())
+            {
+                GeneralChatPacket(text, true).dispatch();
+            }
         }
     }
 
@@ -90,6 +138,15 @@ namespace jrc
         {
             hp_ = hp; mp_ = mp; maxhp_ = maxhp; maxmp_ = maxmp; level_ = level; exp_ = exp;
             emit_stats(hp, maxhp, mp, maxmp, level, exp);
+        }
+
+        const std::string& name = st.get_name();
+        const std::string& job = st.get_jobname();
+        if (name != name_ || job != job_)
+        {
+            name_ = name;
+            job_ = job;
+            emit_character(name, job);
         }
     }
 }

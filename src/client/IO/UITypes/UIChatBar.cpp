@@ -1,6 +1,7 @@
 #include "UIChatBar.h"
 
 #include "../UI.h"
+#include "../UiBridge.h"
 
 #include "../Components/MapleButton.h"
 
@@ -345,6 +346,10 @@ namespace jrc
 
     void UIChatbar::send_line(const std::string& line, LineType type)
     {
+        // Mirror every chat line to the DOM HUD (single choke point for all
+        // server-pushed and locally-echoed chat).
+        UiBridge::get().emit_chat(line, static_cast<int>(type));
+
         rowmax++;
         rowpos = rowmax;
 

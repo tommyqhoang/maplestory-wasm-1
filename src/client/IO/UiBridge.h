@@ -20,6 +20,8 @@ namespace jrc
 
         void emit_scene(const std::string& name);
         void emit_stats(int hp, int maxhp, int mp, int maxmp, int level, int64_t exp);
+        void emit_character(const std::string& name, const std::string& job);
+        void emit_chat(const std::string& line, int ctype);
         void emit_pong(int nonce);
 
         // Dispatch an inbound command (JSON) from JS. Tolerant of bad input.
@@ -31,5 +33,7 @@ namespace jrc
         std::string scene_;
         int hp_ = -1, maxhp_ = -1, mp_ = -1, maxmp_ = -1, level_ = -1;
         int64_t exp_ = -1;
+        std::string name_;
+        std::string job_;
     };
 }

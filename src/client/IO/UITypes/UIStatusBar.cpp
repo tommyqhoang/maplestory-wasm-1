@@ -36,7 +36,9 @@ namespace jrc
     {
         nl::node mainbar = nl::nx::ui["StatusBar2.img"]["mainBar"];
 
-        sprites.emplace_back(mainbar["backgrnd"]);
+        // Background is drawn directly (not via the sprite list) so a high-res
+        // override can replace it while keeping the WZ asset's exact footprint.
+        bg = Texture(mainbar["backgrnd"], "StatusBar/backgrnd");
         sprites.emplace_back(mainbar["gaugeBackgrd"]);
         sprites.emplace_back(mainbar["notice"]);
         sprites.emplace_back(mainbar["lvBacktrnd"]);
@@ -67,6 +69,12 @@ namespace jrc
         joblabel  = { Text::A11M, Text::LEFT, Text::YELLOW };
         namelabel = { Text::A13M, Text::LEFT, Text::WHITE  };
 
+        // Right-aligned so the readout ends at the same anchor the old
+        // WZ bitmap charset used; white + bold reads clearly over the gauges.
+        hptext    = { Text::A11B, Text::RIGHT, Text::WHITE };
+        mptext    = { Text::A11B, Text::RIGHT, Text::WHITE };
+        exptext   = { Text::A11B, Text::RIGHT, Text::WHITE };
+
         buttons[BT_WHISPER]   = std::make_unique<MapleButton>(mainbar["BtChat"]);
         buttons[BT_CALLGM]    = std::make_unique<MapleButton>(mainbar["BtClaim"]);
 
@@ -87,6 +95,14 @@ namespace jrc
 
     void UIStatusbar::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // The DOM HUD renders the status bar and chat; suppress the in-engine
+        // visuals while keeping update()/chat/menu logic intact. The element
+        // must stay alive so handlers can still drive it.
+        (void)alpha;
+        return;
+#else
+        bg.draw(position);
         UIElement::draw(alpha);
 
         expbar.draw(position + Point<int16_t>(-261, -15));
@@ -94,25 +110,11 @@ namespace jrc
         mpbar.draw(position + Point<int16_t>(-90, -31));
 
         int16_t level = stats.get_stat(Maplestat::LEVEL);
-        int16_t hp    = stats.get_stat(Maplestat::HP);
-        int16_t mp    = stats.get_stat(Maplestat::MP);
-        int32_t maxhp = stats.get_total(Equipstat::HP);
-        int32_t maxmp = stats.get_total(Equipstat::MP);
-        int64_t exp   = stats.get_exp();
 
-        std::string expstring = std::to_string(100 * getexppercent());
-        statset.draw(
-            std::to_string(exp) + "[" + expstring.substr(0, expstring.find('.') + 3) + "%]",
-            position + Point<int16_t>(47, -13)
-        );
-        statset.draw(
-            "[" + std::to_string(hp) + "/" + std::to_string(maxhp) + "]",
-            position + Point<int16_t>(-124, -29)
-        );
-        statset.draw(
-            "[" + std::to_string(mp) + "/" + std::to_string(maxmp) + "]",
-            position + Point<int16_t>(47, -29)
-        );
+        // Crisp HP/MP/EXP readouts (text is refreshed in update()).
+        hptext.draw(position + Point<int16_t>(-124, -34));
+        mptext.draw(position + Point<int16_t>(47, -34));
+        exptext.draw(position + Point<int16_t>(47, -18));
         levelset.draw(
             std::to_string(level),
             position + Point<int16_t>(-480, -24)
@@ -122,6 +124,7 @@ namespace jrc
         namelabel.draw(position + Point<int16_t>(-435, -36));
 
         chatbar.draw(alpha);
+#endif
     }
 
     void UIStatusbar::update()
@@ -137,6 +140,20 @@ namespace jrc
 
         namelabel.change_text(stats.get_name());
         joblabel.change_text(stats.get_jobname());
+
+        int16_t hp    = stats.get_stat(Maplestat::HP);
+        int16_t mp    = stats.get_stat(Maplestat::MP);
+        int32_t maxhp = stats.get_total(Equipstat::HP);
+        int32_t maxmp = stats.get_total(Equipstat::MP);
+        int64_t exp   = stats.get_exp();
+
+        std::string expstring = std::to_string(100 * getexppercent());
+        hptext.change_text(std::to_string(hp) + " / " + std::to_string(maxhp));
+        mptext.change_text(std::to_string(mp) + " / " + std::to_string(maxmp));
+        exptext.change_text(
+            std::to_string(exp) + " [" +
+            expstring.substr(0, expstring.find('.') + 3) + "%]"
+        );
 
         for (auto iter : message_cooldowns)
         {
