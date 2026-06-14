@@ -13,7 +13,6 @@ to the actual MapleStory server.
 """
 
 import http.server
-import socketserver
 import os
 
 PORT = 8000
@@ -112,8 +111,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     # Allow address reuse to avoid "Address already in use" errors on restart
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    # ThreadingHTTPServer: a single stalled client connection must not block
+    # all other requests (large NX Range fetches keep connections open).
+    http.server.ThreadingHTTPServer.allow_reuse_address = True
+    http.server.ThreadingHTTPServer.daemon_threads = True
+    with http.server.ThreadingHTTPServer(("", PORT), Handler) as httpd:
         print("=" * 60)
         print("MapleStory WASM Server with HTTP Range Request Support")
         print("=" * 60)

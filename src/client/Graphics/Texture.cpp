@@ -47,12 +47,32 @@ namespace jrc
         }
     }
 
+    Texture::Texture(nl::node src, const std::string& key)
+        : Texture(src)
+    {
+        if (!key.empty() && bitmap.id() != 0 &&
+            GraphicsGL::get().load_hd(key, dimensions.x(), dimensions.y()))
+        {
+            hd = true;
+            hdkey = key;
+        }
+    }
+
     Texture::Texture() {}
 
     Texture::~Texture() {}
 
     void Texture::draw(const DrawArgument& args) const
     {
+        if (hd)
+        {
+            GraphicsGL::get().draw_hd(
+                hdkey, args.get_rectangle(origin, dimensions),
+                args.get_color(), args.get_angle()
+            );
+            return;
+        }
+
         size_t id = bitmap.id();
         if (id == 0)
             return;

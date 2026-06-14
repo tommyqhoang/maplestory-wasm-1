@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
-    command: python web/server.py
+    command: python web/server_fast.py
     ports:
       - "8000:8000"
     volumes:

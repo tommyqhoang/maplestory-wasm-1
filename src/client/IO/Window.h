@@ -42,6 +42,8 @@ namespace jrc
         void end() const;
         void fadeout(float step, std::function<void()> fadeprocedure);
         void check_events();
+        // Resize the output framebuffer (WASM: the canvas backing store).
+        void resize_output(int32_t width, int32_t height);
 
         void setclipboard(const std::string& text) const;
         std::string getclipboard() const;

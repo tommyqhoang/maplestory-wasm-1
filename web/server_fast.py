@@ -30,7 +30,8 @@ async def handle_request(request: web.Request) -> web.StreamResponse:
     # Translate path
     path = request.path.lstrip("/")
     if not path:
-        path = "index.html"
+        # The client page lives in web/, not the repo root we serve from.
+        path = "web/index.html"
     
     full_path = os.path.normpath(os.path.join(DIRECTORY, path))
     

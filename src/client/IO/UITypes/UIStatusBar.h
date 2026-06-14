@@ -25,6 +25,8 @@
 #include "../Components/Gauge.h"
 #include "../Components/Textfield.h"
 
+#include "../../Graphics/Texture.h"
+
 #include "../../Character/CharStats.h"
 #include "../../Character/Inventory/Inventory.h"
 #include "../../Character/Job.h"
@@ -102,6 +104,8 @@ namespace jrc
         EnumMap<Messages::Type, time_t> message_cooldowns;
 
         UIChatbar chatbar;
+        // Status-bar background, drawn directly so an HD override can replace it.
+        Texture bg;
         Gauge expbar;
         Gauge hpbar;
         Gauge mpbar;
@@ -109,6 +113,11 @@ namespace jrc
         Charset levelset;
         Text namelabel;
         Text joblabel;
+        // Crisp, high-contrast HP/MP/EXP readouts rendered with the
+        // supersampled FreeType fonts instead of the tiny WZ gauge bitmaps.
+        Text hptext;
+        Text mptext;
+        Text exptext;
         Animation hpanimation;
         Animation mpanimation;
     };

@@ -21,6 +21,8 @@
 #include "nlnx/node.hpp"
 #include "nlnx/bitmap.hpp"
 
+#include <string>
+
 namespace jrc
 {
     // Represents a single image loaded from a of game data.
@@ -28,6 +30,9 @@ namespace jrc
     {
     public:
         Texture(nl::node source);
+        // Same as above, but draws a high-res override (keyed by hdkey) when one
+        // is available, inheriting this WZ asset's game-space geometry.
+        Texture(nl::node source, const std::string& hdkey);
         Texture();
         ~Texture();
 
@@ -44,5 +49,7 @@ namespace jrc
         nl::bitmap bitmap;
         Point<int16_t> origin;
         Point<int16_t> dimensions;
+        bool hd = false;
+        std::string hdkey;
     };
 }

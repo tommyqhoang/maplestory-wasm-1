@@ -20,7 +20,12 @@
 #include "../Configuration.h"
 #include "../Console.h"
 
+#ifdef MS_PLATFORM_WASM
+#include <emscripten.h>
+#endif
+
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 namespace jrc
@@ -28,6 +33,17 @@ namespace jrc
     GraphicsGL::GraphicsGL()
     {
         locked = false;
+
+        fontymax = 0;
+        supersample = 1;
+        scenefbo = 0;
+        scenetex = 0;
+        upscale_vbo = 0;
+        upscale_program = 0;
+        upscale_attribute_pos = -1;
+        upscale_uniform_outsize = -1;
+        outputwidth = Constants::VIEWWIDTH;
+        outputheight = Constants::VIEWHEIGHT;
     }
 
     Error GraphicsGL::init()
@@ -41,6 +57,19 @@ namespace jrc
         {
             return Error::FREETYPE;
         }
+
+#ifdef MS_PLATFORM_WASM
+        // Pick the supersampling factor from the largest surface this display
+        // can show; it is fixed for the session since fonts bake into the atlas.
+        supersample = static_cast<GLshort>(EM_ASM_INT({
+            var dpr = window.devicePixelRatio || 1;
+            var sw = (window.screen && window.screen.width) ? window.screen.width : 800;
+            var sh = (window.screen && window.screen.height) ? window.screen.height : 600;
+            // The canvas is aspect-fitted, so the smaller ratio is the real scale.
+            var scale = Math.min(sw * dpr / 800.0, sh * dpr / 600.0);
+            return Math.min(4, Math.max(1, Math.ceil(scale)));
+        }));
+#endif
 
         GLint result = GL_FALSE;
 
@@ -132,6 +161,122 @@ namespace jrc
         glGenBuffers(1, &vbo);
         glGenBuffers(1, &ibo);
 
+#ifdef MS_PLATFORM_WASM
+        // The scene is rendered at the fixed game resolution into an offscreen
+        // buffer, then upscaled to the canvas backing store with a
+        // sharp-bilinear shader so non-integer scale factors stay crisp.
+        GLuint ups_vs = glCreateShader(GL_VERTEX_SHADER);
+        const char* ups_vs_source =
+            "precision highp float;\n"
+            "attribute vec2 pos;"
+            "varying vec2 texuv;"
+
+            "void main(void) {"
+            "    texuv = pos * 0.5 + 0.5;"
+            "    gl_Position = vec4(pos, 0.0, 1.0);"
+            "}";
+        glShaderSource(ups_vs, 1, &ups_vs_source, NULL);
+        glCompileShader(ups_vs);
+        glGetShaderiv(ups_vs, GL_COMPILE_STATUS, &result);
+        if (!result)
+        {
+            char infoLog[512];
+            glGetShaderInfoLog(ups_vs, 512, NULL, infoLog);
+            Console::get().print("Upscale vertex shader compilation failed: " + std::string(infoLog));
+            return Error::VERTEX_SHADER;
+        }
+
+        GLuint ups_fs = glCreateShader(GL_FRAGMENT_SHADER);
+        const char* ups_fs_source =
+            "precision highp float;\n"
+            "varying vec2 texuv;"
+            "uniform sampler2D scene;"
+            "uniform vec2 texsize;"
+            "uniform vec2 outsize;"
+
+            // Sharp bilinear: snap to texel centers and only interpolate in a
+            // one-output-pixel band around texel seams.
+            "void main(void) {"
+            "    vec2 scale = max(outsize / texsize, vec2(1.0, 1.0));"
+            "    vec2 pix = texuv * texsize - 0.5;"
+            "    vec2 base = floor(pix);"
+            "    vec2 frac = clamp((pix - base - 0.5) * scale + 0.5, 0.0, 1.0);"
+            "    gl_FragColor = texture2D(scene, (base + 0.5 + frac) / texsize);"
+            "}";
+        glShaderSource(ups_fs, 1, &ups_fs_source, NULL);
+        glCompileShader(ups_fs);
+        glGetShaderiv(ups_fs, GL_COMPILE_STATUS, &result);
+        if (!result)
+        {
+            char infoLog[512];
+            glGetShaderInfoLog(ups_fs, 512, NULL, infoLog);
+            Console::get().print("Upscale fragment shader compilation failed: " + std::string(infoLog));
+            return Error::FRAGMENT_SHADER;
+        }
+
+        upscale_program = glCreateProgram();
+        glAttachShader(upscale_program, ups_vs);
+        glAttachShader(upscale_program, ups_fs);
+        glLinkProgram(upscale_program);
+        glGetProgramiv(upscale_program, GL_LINK_STATUS, &result);
+        if (!result)
+        {
+            return Error::SHADER_PROGRAM;
+        }
+
+        upscale_attribute_pos = glGetAttribLocation(upscale_program, "pos");
+        upscale_uniform_outsize = glGetUniformLocation(upscale_program, "outsize");
+        GLint upscale_uniform_scene = glGetUniformLocation(upscale_program, "scene");
+        GLint upscale_uniform_texsize = glGetUniformLocation(upscale_program, "texsize");
+        if (
+            upscale_attribute_pos == -1 ||
+            upscale_uniform_outsize == -1 ||
+            upscale_uniform_texsize == -1
+        ) {
+            return Error::SHADER_VARS;
+        }
+
+        const GLsizei scenew = supersample * Constants::VIEWWIDTH;
+        const GLsizei sceneh = supersample * Constants::VIEWHEIGHT;
+
+        glUseProgram(upscale_program);
+        glUniform1i(upscale_uniform_scene, 0);
+        glUniform2f(upscale_uniform_texsize, scenew, sceneh);
+        glUniform2f(upscale_uniform_outsize, outputwidth, outputheight);
+
+        static const GLfloat fullscreen_quad[] = {
+            -1.0f, -1.0f,
+             1.0f, -1.0f,
+            -1.0f,  1.0f,
+             1.0f,  1.0f
+        };
+        glGenBuffers(1, &upscale_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, upscale_vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(fullscreen_quad), fullscreen_quad, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glGenTextures(1, &scenetex);
+        glBindTexture(GL_TEXTURE_2D, scenetex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA, scenew, sceneh, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE, nullptr
+        );
+
+        glGenFramebuffers(1, &scenefbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, scenefbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, scenetex, 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            Console::get().print("Scene framebuffer is incomplete.");
+            return Error::SHADER_PROGRAM;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#endif
+
         glGenTextures(1, &atlas);
         glBindTexture(GL_TEXTURE_2D, atlas);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -200,8 +345,6 @@ namespace jrc
         load_font(font_bold,   FALLBACK_FONT_BOLD,   Text::A13B, 0, 13);
         load_font(font_normal, FALLBACK_FONT_NORMAL, Text::A18M, 0, 18);
 
-        fontymax += fontborder.y();
-
         leftovers = QuadTree<size_t, Leftover>([](const Leftover& first, const Leftover& second) {
             bool wcomp = first.width() >= second.width();
             bool hcomp = first.height() >= second.height();
@@ -234,12 +377,19 @@ namespace jrc
             return false;
         }
 
-        if (FT_Set_Pixel_Sizes(face, pixelw, pixelh))
+        // Glyphs rasterize at supersample x detail but lay out in game pixels,
+        // so bitmaps are padded to supersample multiples for an exact mapping.
+        const GLshort ss = supersample;
+        if (FT_Set_Pixel_Sizes(face, pixelw * ss, pixelh * ss))
         {
             return false;
         }
 
         FT_GlyphSlot g = face->glyph;
+
+        auto pad = [ss](GLshort texels) {
+            return static_cast<GLshort>(((texels + ss - 1) / ss) * ss);
+        };
 
         GLshort width  = 0;
         GLshort height = 0;
@@ -248,8 +398,8 @@ namespace jrc
             if (FT_Load_Char(face, c, FT_LOAD_RENDER))
                 continue;
 
-            GLshort w = static_cast<GLshort>(g->bitmap.width);
-            GLshort h = static_cast<GLshort>(g->bitmap.rows);
+            GLshort w = pad(static_cast<GLshort>(g->bitmap.width));
+            GLshort h = pad(static_cast<GLshort>(g->bitmap.rows));
 
             width += w;
             if (h > height)
@@ -260,21 +410,21 @@ namespace jrc
 
         if (fontborder.x() + width > ATLASW)
         {
+            // Start a new row below everything placed so far.
             fontborder.set_x(0);
             fontborder.set_y(fontymax);
-            fontymax = 0;
         }
 
         GLshort x = fontborder.x();
         GLshort y = fontborder.y();
 
         fontborder.shift_x(width);
-        if (height > fontymax)
+        if (y + height > fontymax)
         {
-            fontymax = height;
+            fontymax = y + height;
         }
 
-        fonts[id] = Font(width, height);
+        fonts[id] = Font(width / ss, height / ss);
 
         GLshort ox = x;
         GLshort oy = y;
@@ -285,28 +435,36 @@ namespace jrc
                 continue;
             }
 
-            GLshort ax = static_cast<GLshort>(g->advance.x >> 6);
-            GLshort ay = static_cast<GLshort>(g->advance.y >> 6);
-            GLshort l  = static_cast<GLshort>(g->bitmap_left);
-            GLshort t  = static_cast<GLshort>(g->bitmap_top);
+            // Layout metrics in game pixels; texture rect in atlas texels.
+            GLshort ax = static_cast<GLshort>(std::lround(static_cast<double>(g->advance.x >> 6) / ss));
+            GLshort ay = static_cast<GLshort>(std::lround(static_cast<double>(g->advance.y >> 6) / ss));
+            GLshort l  = static_cast<GLshort>(std::lround(static_cast<double>(g->bitmap_left) / ss));
+            GLshort t  = static_cast<GLshort>(std::lround(static_cast<double>(g->bitmap_top) / ss));
             GLshort w  = static_cast<GLshort>(g->bitmap.width);
             GLshort h  = static_cast<GLshort>(g->bitmap.rows);
+            GLshort wpad = pad(w);
+            GLshort hpad = pad(h);
 
             if (w > 0 && h > 0)
             {
 #ifdef MS_PLATFORM_WASM
-                // WebGL path: expand single-channel glyph bitmap to RGBA.
-                std::vector<uint8_t> rgba_buffer(static_cast<size_t>(w) * h * 4);
-                for (int32_t i = 0; i < static_cast<int32_t>(w) * h; ++i)
+                // WebGL path: expand single-channel glyph bitmap to RGBA,
+                // zero-padded to the supersample-aligned cell.
+                std::vector<uint8_t> rgba_buffer(static_cast<size_t>(wpad) * hpad * 4, 0);
+                for (int32_t row = 0; row < h; ++row)
                 {
-                    uint8_t val = g->bitmap.buffer[i];
-                    rgba_buffer[static_cast<size_t>(i) * 4 + 0] = val;
-                    rgba_buffer[static_cast<size_t>(i) * 4 + 1] = val;
-                    rgba_buffer[static_cast<size_t>(i) * 4 + 2] = val;
-                    rgba_buffer[static_cast<size_t>(i) * 4 + 3] = val;
+                    for (int32_t col = 0; col < w; ++col)
+                    {
+                        uint8_t val = g->bitmap.buffer[row * g->bitmap.pitch + col];
+                        size_t base = (static_cast<size_t>(row) * wpad + col) * 4;
+                        rgba_buffer[base + 0] = val;
+                        rgba_buffer[base + 1] = val;
+                        rgba_buffer[base + 2] = val;
+                        rgba_buffer[base + 3] = val;
+                    }
                 }
                 glTexSubImage2D(
-                    GL_TEXTURE_2D, 0, ox, oy, w, h,
+                    GL_TEXTURE_2D, 0, ox, oy, wpad, hpad,
                     GL_RGBA, GL_UNSIGNED_BYTE, rgba_buffer.data()
                 );
 #else
@@ -317,10 +475,12 @@ namespace jrc
 #endif
             }
 
-            Offset offset = Offset(ox, oy, w, h);
-            fonts[id].chars[c] = { ax, ay, w, h, l, t, offset };
+            Offset offset = Offset(ox, oy, wpad, hpad);
+            fonts[id].chars[c] = { ax, ay,
+                static_cast<GLshort>(wpad / ss), static_cast<GLshort>(hpad / ss),
+                l, t, offset };
 
-            ox += w;
+            ox += wpad;
         }
 
         return true;
@@ -356,6 +516,26 @@ namespace jrc
         glUniform2f(uniform_screensize, width, height);
     }
 
+    void GraphicsGL::set_outputsize(int32_t width, int32_t height)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        outputwidth = width;
+        outputheight = height;
+
+#ifdef MS_PLATFORM_WASM
+        if (upscale_program)
+        {
+            glUseProgram(upscale_program);
+            glUniform2f(upscale_uniform_outsize, width, height);
+            glUseProgram(program);
+        }
+#endif
+    }
+
     Rectangle<int16_t> GraphicsGL::screen()
     {
         return {
@@ -375,6 +555,9 @@ namespace jrc
         leftovers.clear();
         rlid   = 1;
         wasted = 0;
+
+        // The atlas was just reset, so any HD overrides need re-placing.
+        reload_hd();
     }
 
     void GraphicsGL::clear()
@@ -392,29 +575,10 @@ namespace jrc
         getoffset(bmp);
     }
 
-    const GraphicsGL::Offset& GraphicsGL::getoffset(const nl::bitmap& bmp)
+    Point<GLshort> GraphicsGL::reserve_atlas(GLshort w, GLshort h)
     {
-        size_t id = bmp.id();
-        auto offiter = offsets.find(id);
-        if (offiter != offsets.end())
-        {
-            return offiter->second;
-        }
-
         GLshort x = 0;
         GLshort y = 0;
-        GLshort w = bmp.width();
-        GLshort h = bmp.height();
-
-        if (w <= 0 || h <= 0)
-        {
-            return nulloffset;
-        }
-
-        if (!bmp.data())
-        {
-            return nulloffset;
-        }
 
         auto value = Leftover(x, y, w, h);
         size_t lid = leftovers.findnode(value, [](const Leftover& val, const Leftover& leaf){
@@ -507,6 +671,35 @@ namespace jrc
             }
         }
 
+        return { x, y };
+    }
+
+    const GraphicsGL::Offset& GraphicsGL::getoffset(const nl::bitmap& bmp)
+    {
+        size_t id = bmp.id();
+        auto offiter = offsets.find(id);
+        if (offiter != offsets.end())
+        {
+            return offiter->second;
+        }
+
+        GLshort w = bmp.width();
+        GLshort h = bmp.height();
+
+        if (w <= 0 || h <= 0)
+        {
+            return nulloffset;
+        }
+
+        if (!bmp.data())
+        {
+            return nulloffset;
+        }
+
+        Point<GLshort> atlaspos = reserve_atlas(w, h);
+        GLshort x = atlaspos.x();
+        GLshort y = atlaspos.y();
+
         /*
         size_t used = ATLASW * border.y() + border.x() * yrange.second();
         double usedpercent = static_cast<double>(used) / (ATLASW * ATLASH);
@@ -536,6 +729,105 @@ namespace jrc
             std::forward_as_tuple(id),
             std::forward_as_tuple(x, y, w, h)
         ).first->second;
+    }
+
+    bool GraphicsGL::has_hd(const std::string& key) const
+    {
+        return hd_offsets.find(key) != hd_offsets.end();
+    }
+
+    bool GraphicsGL::place_hd(const std::string& key, int16_t gamewidth, int16_t gameheight)
+    {
+#ifdef MS_PLATFORM_WASM
+        const int hw = gamewidth * supersample;
+        const int hh = gameheight * supersample;
+        if (hw <= 0 || hh <= 0 || hw > ATLASW || hh > ATLASH)
+        {
+            return false;
+        }
+
+        std::vector<uint8_t> rgba(static_cast<size_t>(hw) * hh * 4, 0);
+        int ok = EM_ASM_INT({
+            if (typeof Module.hdGetScaled !== 'function')
+            {
+                return 0;
+            }
+            return Module.hdGetScaled(UTF8ToString($0), $1, $2, $3);
+        }, key.c_str(), hw, hh, rgba.data());
+
+        if (!ok)
+        {
+            return false;
+        }
+
+        Point<GLshort> pos = reserve_atlas(static_cast<GLshort>(hw), static_cast<GLshort>(hh));
+
+        glBindTexture(GL_TEXTURE_2D, atlas);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexSubImage2D(
+            GL_TEXTURE_2D, 0, pos.x(), pos.y(), hw, hh,
+            GL_RGBA, GL_UNSIGNED_BYTE, rgba.data()
+        );
+
+        // Stored at HD texel size, but drawn at the WZ asset's game-space
+        // rectangle, so it lands 1:1 in the supersampled scene pass.
+        hd_offsets[key] = Offset(pos.x(), pos.y(),
+            static_cast<GLshort>(hw), static_cast<GLshort>(hh));
+        return true;
+#else
+        (void)key; (void)gamewidth; (void)gameheight;
+        return false;
+#endif
+    }
+
+    void GraphicsGL::reload_hd()
+    {
+        if (hd_requests.empty())
+        {
+            return;
+        }
+        hd_offsets.clear();
+        for (const auto& req : hd_requests)
+        {
+            place_hd(req.first, req.second.x(), req.second.y());
+        }
+    }
+
+    bool GraphicsGL::load_hd(const std::string& key, int16_t gamewidth, int16_t gameheight)
+    {
+        if (gamewidth <= 0 || gameheight <= 0)
+        {
+            return false;
+        }
+        if (hd_offsets.find(key) != hd_offsets.end())
+        {
+            return true;
+        }
+        if (!place_hd(key, gamewidth, gameheight))
+        {
+            return false;
+        }
+        hd_requests[key] = Point<int16_t>(gamewidth, gameheight);
+        return true;
+    }
+
+    void GraphicsGL::draw_hd(const std::string& key, const Rectangle<int16_t>& rect,
+        const Color& color, float angle)
+    {
+        if (locked || color.invisible())
+        {
+            return;
+        }
+        auto it = hd_offsets.find(key);
+        if (it == hd_offsets.end())
+        {
+            return;
+        }
+        if (!rect.overlaps(screen()))
+        {
+            return;
+        }
+        quads.emplace_back(rect.l(), rect.r(), rect.t(), rect.b(), it->second, color, angle);
     }
 
     void GraphicsGL::draw(const nl::bitmap& bmp, const Rectangle<int16_t>& rect,
@@ -910,6 +1202,13 @@ namespace jrc
             quads.emplace_back(screen_rect.l(), screen_rect.r(), screen_rect.t(), screen_rect.b(), nulloffset, color, 0.0f);
         }
 
+#ifdef MS_PLATFORM_WASM
+        // Pass 1: render the scene supersampled. The vertex shader emits NDC
+        // from game coordinates, so the larger viewport scales everything.
+        glBindFramebuffer(GL_FRAMEBUFFER, scenefbo);
+        glViewport(0, 0, supersample * Constants::VIEWWIDTH, supersample * Constants::VIEWHEIGHT);
+#endif
+
         glClearColor(1.0, 1.0, 1.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -947,6 +1246,27 @@ namespace jrc
         glDisableVertexAttribArray(attribute_coord);
         glDisableVertexAttribArray(attribute_color);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+#ifdef MS_PLATFORM_WASM
+        // Pass 2: sharp-bilinear upscale of the scene to the canvas backing store.
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, outputwidth, outputheight);
+        glDisable(GL_BLEND);
+
+        glUseProgram(upscale_program);
+        glBindTexture(GL_TEXTURE_2D, scenetex);
+        glBindBuffer(GL_ARRAY_BUFFER, upscale_vbo);
+        glEnableVertexAttribArray(upscale_attribute_pos);
+        glVertexAttribPointer(upscale_attribute_pos, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDisableVertexAttribArray(upscale_attribute_pos);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // Restore the persistent scene-pass state set up in reinit().
+        glEnable(GL_BLEND);
+        glUseProgram(program);
+        glBindTexture(GL_TEXTURE_2D, atlas);
+#endif
 
         if (coverscene)
         {

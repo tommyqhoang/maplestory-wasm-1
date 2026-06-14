@@ -3,19 +3,7 @@
 /assets/
 /serverAssets/
 __pycache__
-.playwright-mcp/page-2026-06-12T00-43-03-269Z.yml
-.playwright-mcp/page-2026-06-12T00-30-46-364Z.yml
-.playwright-mcp/page-2026-06-11T18-16-59-869Z.yml
-.playwright-mcp/page-2026-06-11T18-16-40-203Z.yml
-.playwright-mcp/page-2026-05-30T09-08-49-735Z.yml
-.playwright-mcp/page-2026-05-30T09-08-42-438Z.yml
-.playwright-mcp/page-2026-05-30T09-08-21-254Z.yml
-.playwright-mcp/console-2026-06-12T00-43-03-161Z.log
-.playwright-mcp/console-2026-06-12T00-30-46-121Z.log
-.playwright-mcp/console-2026-06-11T18-16-40-094Z.log
-.playwright-mcp/console-2026-06-11T18-04-46-998Z.log
-.playwright-mcp/console-2026-05-30T09-08-42-400Z.log
-.playwright-mcp/console-2026-05-30T09-08-21-159Z.log
+.playwright-mcp/
 blur-before-1080p.png
 blur-before-crop.png
 web/ui/node_modules/
@@ -28,3 +16,15 @@ e2e-05-charcreate.png
 e2e-06-named.png
 game-client.png
 initial-page.png
+
+# Game data (multi-GB NX/WZ assets, not source)
+/nxFiles/
+/wz/
+NoLifeWzToNx.log
+
+# Dev/QA screenshots
+p2-*.png
+p3-*.png
+p4-*.png
+ss2-*.png
+sharp-after-*.png

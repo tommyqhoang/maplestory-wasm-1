@@ -36,7 +36,7 @@ if(EMSCRIPTEN)
         -sASYNCIFY_STACK_SIZE=16777216
         -sSTACK_SIZE=16777216
         -sINITIAL_MEMORY=268435456  
-        -sEXPORTED_RUNTIME_METHODS=FS,ccall,cwrap,setCanvasSize
+        -sEXPORTED_RUNTIME_METHODS=FS,ccall,cwrap,setCanvasSize,HEAPU8
         "--embed-file=${CMAKE_CURRENT_SOURCE_DIR}/fonts/Arial/Arial.ttf@fonts/Arial/Arial.ttf"
         "--embed-file=${CMAKE_CURRENT_SOURCE_DIR}/fonts/Arial/Arial-Bold.ttf@fonts/Arial/Arial-Bold.ttf"
         --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/LazyFS/lazyfs.js

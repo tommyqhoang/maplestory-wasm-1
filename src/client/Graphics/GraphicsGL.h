@@ -32,6 +32,7 @@
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -49,6 +50,9 @@ namespace jrc
         void reinit();
         // Update runtime viewport-dependent uniforms and clipping.
         void set_screensize(int16_t width, int16_t height);
+        // Set the size of the output framebuffer (canvas backing store) the
+        // fixed-resolution scene gets upscaled to.
+        void set_outputsize(int32_t width, int32_t height);
 
         // Clear all bitmaps if most of the space is used up.
         void clear();
@@ -65,6 +69,17 @@ namespace jrc
         // Draw a text with the given parameters.
         void drawtext(const DrawArgument& args, const std::string& text, const Text::Layout& layout, Text::Font font,
             Text::Color color, Text::Background back);
+
+        // HD asset override: load a high-res image (preloaded and scaled to
+        // supersample x game size on the JS side) into the atlas under a key,
+        // inheriting the game-space geometry of the WZ asset it replaces.
+        // Returns false when no override is available, so callers fall back.
+        bool load_hd(const std::string& key, int16_t gamewidth, int16_t gameheight);
+        // True once load_hd has placed the override in the atlas.
+        bool has_hd(const std::string& key) const;
+        // Draw a loaded HD override at a game-space rectangle.
+        void draw_hd(const std::string& key, const Rectangle<int16_t>& rect,
+            const Color& color, float angle);
 
         // Draw a rectangle filled with the specified color.
         void drawrectangle(int16_t x, int16_t y, int16_t w, int16_t h, float r, float g, float b, float a);
@@ -110,6 +125,12 @@ namespace jrc
         };
         // Add a bitmap to the available resources.
         const Offset& getoffset(const nl::bitmap& bmp);
+        // Pack a w x h rectangle into the atlas and return its top-left texel.
+        Point<GLshort> reserve_atlas(GLshort w, GLshort h);
+        // Fetch+scale the HD pixels for a key and place them in the atlas.
+        bool place_hd(const std::string& key, int16_t gamewidth, int16_t gameheight);
+        // Re-place every requested HD override (after an atlas reset).
+        void reload_hd();
 
         struct Leftover
         {
@@ -275,7 +296,25 @@ namespace jrc
         GLint uniform_yoffset;
         GLint uniform_fontregion;
 
+        // Offscreen scene buffer and sharp-bilinear upscale pass (WASM).
+        // The scene renders at supersample x game resolution: sprites become
+        // uniform integer-scaled pixels and fonts rasterize at native detail.
+        GLshort supersample;
+        GLuint scenefbo;
+        GLuint scenetex;
+        GLuint upscale_vbo;
+        GLint upscale_program;
+        GLint upscale_attribute_pos;
+        GLint upscale_uniform_outsize;
+        int32_t outputwidth;
+        int32_t outputheight;
+
         std::unordered_map<size_t, Offset> offsets;
+        // Atlas placements of loaded HD overrides, keyed by override name.
+        std::unordered_map<std::string, Offset> hd_offsets;
+        // Game-space size requested for each HD override, so it can be re-placed
+        // after the atlas is reset.
+        std::unordered_map<std::string, Point<int16_t>> hd_requests;
         Offset nulloffset;
 
         QuadTree<size_t, Leftover> leftovers;

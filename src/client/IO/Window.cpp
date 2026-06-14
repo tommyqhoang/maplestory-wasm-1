@@ -139,8 +139,19 @@ namespace jrc
         }
     }
 
+#ifdef MS_PLATFORM_WASM
+    // Canvas backing store size; mouse events arrive in this space and must be
+    // mapped back to the fixed game resolution.
+    int32_t output_width = Constants::VIEWWIDTH;
+    int32_t output_height = Constants::VIEWHEIGHT;
+#endif
+
     void cursor_callback(GLFWwindow*, double xpos, double ypos)
     {
+#ifdef MS_PLATFORM_WASM
+        xpos = xpos * Constants::VIEWWIDTH / output_width;
+        ypos = ypos * Constants::VIEWHEIGHT / output_height;
+#endif
         auto x = static_cast<int16_t>(xpos);
         auto y = static_cast<int16_t>(ypos);
         Point<int16_t> pos = Point<int16_t>(x, y);
@@ -168,9 +179,13 @@ namespace jrc
         if (width > 0 && height > 0)
         {
 #ifdef MS_PLATFORM_WASM
-            // Browser resizes only change CSS scaling; the game keeps a fixed internal viewport.
+            // The game keeps a fixed internal resolution; the canvas backing
+            // store tracks the display size and receives the upscaled scene.
             Constants::set_viewsize(Constants::VIEWWIDTH, Constants::VIEWHEIGHT);
-            glViewport(0, 0, Constants::VIEWWIDTH, Constants::VIEWHEIGHT);
+            output_width = width;
+            output_height = height;
+            GraphicsGL::get().set_outputsize(width, height);
+            glViewport(0, 0, width, height);
 #else
             Constants::set_viewsize(width, height);
             glViewport(0, 0, width, height);
@@ -406,6 +421,17 @@ namespace jrc
         glfwSwapBuffers(glwnd);
     }
 
+    void Window::resize_output(int32_t width, int32_t height)
+    {
+#ifdef MS_PLATFORM_WASM
+        if (glwnd && width > 0 && height > 0)
+        {
+            // Resizes the canvas backing store and fires the framebuffer size callback.
+            glfwSetWindowSize(glwnd, width, height);
+        }
+#endif
+    }
+
     void Window::fadeout(float step, std::function<void()> fadeproc)
     {
         opcstep = -step;
@@ -423,3 +449,10 @@ namespace jrc
         return text ? text : "";
     }
 }
+
+#ifdef MS_PLATFORM_WASM
+extern "C" EMSCRIPTEN_KEEPALIVE void wasm_set_canvas_size(int32_t width, int32_t height)
+{
+    jrc::Window::get().resize_output(width, height);
+}
+#endif
