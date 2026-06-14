@@ -15,6 +15,9 @@
 #include "../Net/Packets/PlayerPackets.h"
 #include "../Character/MapleStat.h"
 #include "../Character/EquipStat.h"
+#include "../Character/Inventory/Inventory.h"
+#include "../Character/Inventory/InventoryType.h"
+#include "../Character/Look/EquipSlot.h"
 #include "UITypes/UICharSelect.h"
 #include "UITypes/UILogin.h"
 
@@ -118,6 +121,87 @@ namespace jrc
         json j = {
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_STATSDETAIL},
             {"json", obj}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_inventory()
+    {
+        const Inventory& inv = Stage::get().get_player().get_inventory();
+
+        // Tab id -> lowercased tab string for the DOM Inventory window. Mirrors
+        // the InventoryType enum (NONE/EQUIP/USE/SETUP/ETC/CASH/EQUIPPED).
+        struct TabDef { InventoryType::Id type; const char* name; };
+        static const TabDef tabs[] = {
+            { InventoryType::EQUIP, "equip" },
+            { InventoryType::USE,   "use"   },
+            { InventoryType::SETUP, "setup" },
+            { InventoryType::ETC,   "etc"   },
+            { InventoryType::CASH,  "cash"  }
+        };
+
+        json arr = json::array();
+        for (const TabDef& tab : tabs)
+        {
+            int slotmax = inv.get_slotmax(tab.type);
+            for (int16_t slot = 1; slot <= slotmax; ++slot)
+            {
+                int32_t itemid = inv.get_item_id(tab.type, slot);
+                if (itemid == 0)
+                {
+                    continue;
+                }
+                arr.push_back({
+                    {"tab", tab.name},
+                    {"slot", slot},
+                    {"itemid", itemid},
+                    {"count", inv.get_item_count(tab.type, slot)}
+                });
+            }
+        }
+
+        std::string payload = arr.dump();
+        if (payload == inventory_sig_)
+        {
+            return;
+        }
+        inventory_sig_ = payload;
+
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_INVENTORY},
+            {"json", payload}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_equipment()
+    {
+        const Inventory& inv = Stage::get().get_player().get_inventory();
+
+        json arr = json::array();
+        for (Equipslot::Id slot : Equipslot::values)
+        {
+            int32_t itemid = inv.get_item_id(InventoryType::EQUIPPED, slot);
+            if (itemid == 0)
+            {
+                continue;
+            }
+            arr.push_back({
+                {"slot", static_cast<int>(slot)},
+                {"itemid", itemid}
+            });
+        }
+
+        std::string payload = arr.dump();
+        if (payload == equipment_sig_)
+        {
+            return;
+        }
+        equipment_sig_ = payload;
+
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_EQUIPMENT},
+            {"json", payload}
         };
         push(j.dump());
     }
@@ -556,6 +640,12 @@ namespace jrc
         // Detailed stats for the DOM Stats window. Self-diffs via an internal
         // signature, so this only pushes a message when the detail set changes.
         emit_stats_detail();
+
+        // Inventory + equipped items for the DOM Inventory/Equipment windows.
+        // Both self-diff via a serialized-payload signature, so they only push
+        // a message when the contents actually change.
+        emit_inventory();
+        emit_equipment();
     }
 }
 

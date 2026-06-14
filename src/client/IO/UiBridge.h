@@ -26,6 +26,12 @@ namespace jrc
         // Builds and emits the detailed stats payload (StatsDetail) consumed by
         // the DOM Stats window. Reads from the live player CharStats.
         void emit_stats_detail();
+        // Builds and emits the inventory payload (item id + count per occupied
+        // slot, per tab) consumed by the DOM Inventory window. Self-diffs.
+        void emit_inventory();
+        // Builds and emits the equipped-items payload (item id per equip slot)
+        // consumed by the DOM Equipment window. Self-diffs.
+        void emit_equipment();
         void emit_character(const std::string& name, const std::string& job);
         void emit_chat(const std::string& line, int ctype);
         void emit_pong(int nonce);
@@ -55,6 +61,11 @@ namespace jrc
         // suppress redundant emits (the detail set changes on level-up, AP
         // spend, equip changes, buffs, etc.).
         std::string statsdetail_sig_;
+
+        // Serialized signatures of the last emitted inventory / equipment
+        // payloads, used to suppress redundant emits.
+        std::string inventory_sig_;
+        std::string equipment_sig_;
 
         // Entry-flow selection state (set by selectWorld, used by requestCharlist).
         uint8_t selected_world_ = 0;

@@ -94,6 +94,12 @@ namespace jrc
 
     void UIItemInventory::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // The DOM Inventory window renders this in the React UI; suppress the
+        // in-canvas draw while keeping the element's logic/state alive.
+        (void)alpha;
+        return;
+#else
         UIElement::draw(alpha);
 
         slider.draw(position);
@@ -129,6 +135,7 @@ namespace jrc
 
         Point<int16_t> mesopos = position + Point<int16_t>(124, 264);
         mesolabel.draw(mesopos);
+#endif
     }
 
     void UIItemInventory::update()
