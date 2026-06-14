@@ -1,15 +1,15 @@
 import { useGame } from "../../store/store";
-import { bridge } from "../../bridge/useBridge";
 import { Panel, Button, GaugeBar } from "../../design/primitives";
 
 const MENU_BUTTONS: Array<{ label: string; window: string }> = [
   { label: "Stats", window: "stats" },
   { label: "Inventory", window: "inventory" },
-  { label: "Equip", window: "equips" },
+  { label: "Equip", window: "equipment" },
   { label: "Skills", window: "skills" },
 ];
 
 export function StatusBar() {
+  const toggleWindow = useGame((s) => s.toggleWindow);
   const name = useGame((s) => s.character.name);
   const job = useGame((s) => s.character.job);
   const level = useGame((s) => s.stats.level);
@@ -53,7 +53,7 @@ export function StatusBar() {
 
       <div className="hud-menu-row">
         {MENU_BUTTONS.map(({ label, window }) => (
-          <Button key={window} onClick={() => bridge.openWindow(window)}>
+          <Button key={window} onClick={() => toggleWindow(window)}>
             {label}
           </Button>
         ))}
