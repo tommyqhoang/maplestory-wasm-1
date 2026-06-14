@@ -22,6 +22,7 @@
 #include "UITypes/UICharSelect.h"
 #include "UITypes/UILogin.h"
 #include "UITypes/UINpcTalk.h"
+#include "UITypes/UIShop.h"
 
 #include "../Util/Misc.h"
 
@@ -315,6 +316,39 @@ namespace jrc
         json j = {
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_CHARACTERS},
             {"json", arr.dump()}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_shop(bool active, int32_t npcid, const std::vector<ShopEntry>& items)
+    {
+        json payload;
+        payload["active"] = active;
+        if (active)
+        {
+            payload["npcid"] = npcid;
+            json arr = json::array();
+            for (const ShopEntry& it : items)
+            {
+                arr.push_back({
+                    {"slot", it.slot},
+                    {"itemid", it.itemid},
+                    {"price", it.price},
+                    {"buyable", it.buyable}
+                });
+            }
+            payload["items"] = arr;
+        }
+        else
+        {
+            // The DOM treats active:false as "no shop"; items is required by the
+            // schema, so emit an empty list it can still validate.
+            payload["items"] = json::array();
+        }
+
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_SHOP},
+            {"json", payload.dump()}
         };
         push(j.dump());
     }
@@ -686,6 +720,25 @@ namespace jrc
             if (auto npctalk = UI::get().get_element<UINpcTalk>())
             {
                 npctalk->respond(action, selection, text);
+            }
+        }
+        else if (t == bridge::MSG_SHOPACTION)
+        {
+            // Drive the live in-canvas UIShop with the DOM shop window's action.
+            // UIShop::shop_action reuses the exact NpcShopActionPacket the
+            // in-canvas buttons dispatch. Ignore if no shop is open.
+            const std::string action = j.value("action", std::string());
+            int16_t slot = static_cast<int16_t>(j.value("slot", 0));
+            int32_t itemid = j.value("itemid", 0);
+            int16_t quantity = static_cast<int16_t>(j.value("quantity", 1));
+            if (auto shop = UI::get().get_element<UIShop>())
+            {
+                shop->shop_action(action, slot, itemid, quantity);
+            }
+            // Closing the shop from the DOM clears the DOM window immediately.
+            if (action == "exit")
+            {
+                emit_shop(false, 0, {});
             }
         }
     }

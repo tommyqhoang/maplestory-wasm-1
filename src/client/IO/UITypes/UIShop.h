@@ -46,6 +46,14 @@ namespace jrc
         void send_key(int32_t keycode, bool pressed, bool escape) override;
 
         void reset(int32_t npcid);
+
+        // Drives a buy/sell/exit from the DOM shop window via the same
+        // NpcShopActionPacket the in-canvas buttons dispatch. action is one of
+        // "buy" | "sell" | "exit". For buy/sell, slot/itemid/quantity are taken
+        // verbatim (the DOM already knows the concrete values). Unknown actions
+        // are ignored.
+        void shop_action(const std::string& action, int16_t slot, int32_t itemid, int16_t quantity);
+
         void add_item(int32_t id, int32_t price,
             int32_t pitch, int32_t time, int16_t buyable);
         void add_rechargable(int32_t id, int32_t price, int32_t pitch,

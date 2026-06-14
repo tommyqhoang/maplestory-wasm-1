@@ -118,6 +118,12 @@ namespace jrc
 
     void UIShop::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // The shop is rendered by the DOM UI (features/shop/Shop.tsx) under WASM;
+        // suppress the in-canvas draw. The rest of UIShop's logic (item parsing,
+        // buy/sell/exit dispatch via shop_action) stays alive for the bridge.
+        (void)alpha;
+#else
         UIElement::draw(alpha);
 
         npc.draw({ position + Point<int16_t>(64, 76), true });
@@ -135,6 +141,7 @@ namespace jrc
 
         buyslider.draw(position);
         sellslider.draw(position);
+#endif
     }
 
     void UIShop::update()
@@ -407,6 +414,30 @@ namespace jrc
         changeselltab(InventoryType::EQUIP);
 
         active = true;
+    }
+
+    void UIShop::shop_action(const std::string& action,
+                             int16_t slot,
+                             int32_t itemid,
+                             int16_t quantity)
+    {
+        // Reuse the exact NpcShopActionPacket forms the in-canvas buttons send
+        // (see button_pressed / BuyState::buy / SellState::sell / EXIT above).
+        if (action == "buy")
+        {
+            int16_t qty = quantity > 0 ? quantity : 1;
+            NpcShopActionPacket(slot, itemid, qty, true).dispatch();
+        }
+        else if (action == "sell")
+        {
+            int16_t qty = quantity > 0 ? quantity : 1;
+            NpcShopActionPacket(slot, itemid, qty, false).dispatch();
+        }
+        else if (action == "exit")
+        {
+            active = false;
+            NpcShopActionPacket().dispatch();
+        }
     }
 
     void UIShop::modify(InventoryType::Id type)

@@ -18,6 +18,7 @@
 #include "NpcInteractionHandlers.h"
 
 #include "../../IO/UI.h"
+#include "../../IO/UiBridge.h"
 #include "../../IO/UITypes/UINpcTalk.h"
 #include "../../IO/UITypes/UINotice.h"
 #include "../../IO/UITypes/UIShop.h"
@@ -198,6 +199,11 @@ namespace jrc
 
         shop.reset(npcid);
 
+        // Mirror the items into the DOM shop window (features/shop/Shop.tsx).
+        // slot is the 0-based position in the buy list, matching UIShop's
+        // BuyState ordering (add_item / add_rechargable push in packet order).
+        std::vector<UiBridge::ShopEntry> entries;
+
         int16_t size = recv.read_short();
         for (int16_t i = 0; i < size; i++)
         {
@@ -214,6 +220,7 @@ namespace jrc
                 int16_t buyable = recv.read_short();
 
                 shop.add_item(itemid, price, pitch, time, buyable);
+                entries.push_back({ i, itemid, price, buyable > 0 });
             }
             else
             {
@@ -223,8 +230,11 @@ namespace jrc
                 int16_t slotmax = recv.read_short();
 
                 shop.add_rechargable(itemid, price, pitch, time, rechargeprice, slotmax);
+                entries.push_back({ i, itemid, price, slotmax > 0 });
             }
         }
+
+        UiBridge::get().emit_shop(true, npcid, entries);
     }
 
     void StorageHandler::handle(InPacket& recv) const

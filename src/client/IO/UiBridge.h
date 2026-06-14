@@ -57,6 +57,19 @@ namespace jrc
             const std::vector<std::pair<int32_t, std::string>>& selections
         );
 
+        // A single buyable entry for the DOM NPC shop window.
+        struct ShopEntry
+        {
+            int16_t slot;
+            int32_t itemid;
+            int32_t price;
+            bool buyable;
+        };
+
+        // Pushes the current NPC shop state to the DOM shop window. When active
+        // is false the other fields are ignored (the DOM clears the window).
+        void emit_shop(bool active, int32_t npcid, const std::vector<ShopEntry>& items);
+
         // Sends a WZ-sourced icon to the DOM as a PNG data URL (or "" if the
         // asset could not be resolved). Keyed by the original requestAsset key.
         void emit_asset(const std::string& key, const std::string& dataUrl);
