@@ -267,7 +267,17 @@
                     return;
                 }
 
-                const { width, height } = getFittedCanvasSize(window.innerWidth, window.innerHeight);
+                const viewW = window.innerWidth;
+                const viewH = window.innerHeight;
+                // Minimized or otherwise zero-area (some browsers report 0 while
+                // the window is hidden): hold the last good size instead of
+                // collapsing the backing store to 1x1 and reinitializing the GL
+                // pipeline. The visibilitychange listener re-fits on restore.
+                if (viewW < 2 || viewH < 2) {
+                    return;
+                }
+
+                const { width, height } = getFittedCanvasSize(viewW, viewH);
 
                 // Resize the engine's backing store first: Emscripten clears the
                 // inline CSS size during the resize, so the CSS scale goes last.
@@ -289,8 +299,59 @@
                 }
             };
 
-            window.addEventListener('resize', fitCanvas);
-            document.addEventListener('fullscreenchange', fitCanvas);
+            // Coalesce bursts of resize events into one update per animation
+            // frame: each resize otherwise synchronously re-sizes the GL backing
+            // store, and a click-drag resize fires dozens per second.
+            let fitScheduled = false;
+            function scheduleFit() {
+                if (fitScheduled) {
+                    return;
+                }
+                fitScheduled = true;
+                requestAnimationFrame(function () {
+                    fitScheduled = false;
+                    fitCanvas();
+                });
+            }
+
+            // devicePixelRatio changes — browser zoom (Ctrl +/-) or dragging the
+            // window to a monitor with a different DPI — don't reliably fire a
+            // 'resize' event, but they do change how many device pixels the
+            // canvas needs. A matchMedia query bound to the current DPR fires
+            // once when it changes; re-arm it at the new DPR each time.
+            function watchDevicePixelRatio() {
+                if (typeof matchMedia !== 'function') {
+                    return;
+                }
+                const mq = matchMedia('(resolution: ' + window.devicePixelRatio + 'dppx)');
+                const onChange = function () {
+                    scheduleFit();
+                    watchDevicePixelRatio();
+                };
+                if (mq.addEventListener) {
+                    mq.addEventListener('change', onChange, { once: true });
+                } else if (mq.addListener) {
+                    // Safari < 14 / older engines.
+                    const legacy = function () { mq.removeListener(legacy); onChange(); };
+                    mq.addListener(legacy);
+                }
+            }
+
+            window.addEventListener('resize', scheduleFit);
+            window.addEventListener('orientationchange', scheduleFit);
+            document.addEventListener('fullscreenchange', scheduleFit);
+            // Returning from minimize or a background tab: the window may have
+            // been resized while hidden (and resize events suppressed), so
+            // re-fit once it's visible again.
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) {
+                    scheduleFit();
+                }
+            });
+            // bfcache restore (back/forward navigation).
+            window.addEventListener('pageshow', scheduleFit);
+
+            watchDevicePixelRatio();
             fitCanvas();
         })();
 
