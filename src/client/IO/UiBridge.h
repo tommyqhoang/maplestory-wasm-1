@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace jrc
@@ -31,6 +32,10 @@ namespace jrc
         void emit_worlds(const std::vector<World>& worlds);
         void emit_characters(const std::vector<CharEntry>& chars);
 
+        // Sends a WZ-sourced icon to the DOM as a PNG data URL (or "" if the
+        // asset could not be resolved). Keyed by the original requestAsset key.
+        void emit_asset(const std::string& key, const std::string& dataUrl);
+
         // Dispatch an inbound command (JSON) from JS. Tolerant of bad input.
         void handle_command(const std::string& json);
 
@@ -46,5 +51,12 @@ namespace jrc
         // Entry-flow selection state (set by selectWorld, used by requestCharlist).
         uint8_t selected_world_ = 0;
         uint8_t selected_channel_ = 0;
+
+        // Encodes the WZ icon for a "<kind>/<id>" key to a PNG data URL and
+        // emits it. Resolves item/equip/skill icons via the same nl::nx paths
+        // the in-canvas UI uses. Results are cached so repeats are cheap and a
+        // reconnecting DOM can re-request without re-encoding.
+        void resolve_and_emit_asset(const std::string& key);
+        std::unordered_map<std::string, std::string> asset_cache_;
     };
 }
