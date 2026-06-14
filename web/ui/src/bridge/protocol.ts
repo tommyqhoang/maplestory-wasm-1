@@ -114,6 +114,16 @@ export const ShopMsg = z.object({
   t: z.literal("shop"),
   json: z.string(),
 });
+export const BuffsMsg = z.object({
+  ...base,
+  t: z.literal("buffs"),
+  json: z.string(),
+});
+export const NoticeMsg = z.object({
+  ...base,
+  t: z.literal("notice"),
+  json: z.string(),
+});
 
 // Parsed payload of StatsDetailMsg.json (engine → TS, detailed Stats window)
 export const StatsDetail = z.object({
@@ -206,6 +216,24 @@ export const ShopPayload = z.object({
 });
 export type ShopPayload = z.infer<typeof ShopPayload>;
 
+// Parsed payload of BuffsMsg.json (engine → TS, DOM buff-icon bar). Each entry
+// is an active buff with its triggering skill id and remaining duration in ms.
+export const BuffEntry = z.object({
+  skillid: z.number().int(),
+  duration: z.number().int(),
+});
+export type BuffEntry = z.infer<typeof BuffEntry>;
+export const BuffsData = z.array(BuffEntry);
+export type BuffsData = z.infer<typeof BuffsData>;
+
+// Parsed payload of NoticeMsg.json (engine → TS, DOM notification toasts).
+// ntype defaults to "system" when omitted by the engine.
+export const NoticePayload = z.object({
+  text: z.string(),
+  ntype: z.string().optional().default("system"),
+});
+export type NoticePayload = z.infer<typeof NoticePayload>;
+
 export const PingMsg = z.object({
   ...base,
   t: z.literal("ping"),
@@ -292,6 +320,8 @@ export const InboundMsg = z.discriminatedUnion("t", [
   SkillsMsg,
   NpcDialogMsg,
   ShopMsg,
+  BuffsMsg,
+  NoticeMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,

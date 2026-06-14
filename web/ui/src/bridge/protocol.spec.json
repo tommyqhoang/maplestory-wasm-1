@@ -172,6 +172,16 @@
         { "name": "itemid", "type": "int" },
         { "name": "quantity", "type": "int" }
       ]
+    },
+    {
+      "type": "buffs",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "notice",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
     }
   ]
 }

@@ -29,4 +29,6 @@ constexpr const char* MSG_NPCDIALOG = "npcDialog";
 constexpr const char* MSG_NPCRESPOND = "npcRespond";
 constexpr const char* MSG_SHOP = "shop";
 constexpr const char* MSG_SHOPACTION = "shopAction";
+constexpr const char* MSG_BUFFS = "buffs";
+constexpr const char* MSG_NOTICE = "notice";
 }}
