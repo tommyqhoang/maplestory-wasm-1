@@ -300,3 +300,24 @@ test("recv equipment with malformed json sets store.equipment = [] without throw
   ).not.toThrow();
   expect(useGame.getState().equipment).toEqual([]);
 });
+
+// Phase 3 Task 4 — skills window
+test("recv skills with one entry populates store.skills", () => {
+  const { bridge } = makeBridge();
+  const sk = [{ skillid: 1001, level: 10, masterlevel: 20 }];
+  bridge.recv(JSON.stringify({ v: 1, t: "skills", json: JSON.stringify(sk) }));
+  const got = useGame.getState().skills;
+  expect(got.length).toBe(1);
+  expect(got[0].skillid).toBe(1001);
+  expect(got[0].level).toBe(10);
+  expect(got[0].masterlevel).toBe(20);
+});
+
+test("recv skills with malformed json sets store.skills = [] without throwing", () => {
+  const { bridge } = makeBridge();
+  useGame.getState().setSkills([{ skillid: 1, level: 1, masterlevel: 0 }]);
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "skills", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().skills).toEqual([]);
+});

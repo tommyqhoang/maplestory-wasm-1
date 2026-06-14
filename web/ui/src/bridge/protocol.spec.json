@@ -135,6 +135,11 @@
       "fields": [{ "name": "json", "type": "string" }]
     },
     {
+      "type": "skills",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
       "type": "allocateAp",
       "dir": "in",
       "fields": [{ "name": "stat", "type": "string" }]

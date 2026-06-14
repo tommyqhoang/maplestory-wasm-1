@@ -99,6 +99,11 @@ export const EquipmentMsg = z.object({
   t: z.literal("equipment"),
   json: z.string(),
 });
+export const SkillsMsg = z.object({
+  ...base,
+  t: z.literal("skills"),
+  json: z.string(),
+});
 
 // Parsed payload of StatsDetailMsg.json (engine → TS, detailed Stats window)
 export const StatsDetail = z.object({
@@ -145,6 +150,16 @@ export const EquipSlot = z.object({
 export type EquipSlot = z.infer<typeof EquipSlot>;
 export const EquipmentData = z.array(EquipSlot);
 export type EquipmentData = z.infer<typeof EquipmentData>;
+
+// Parsed payload of SkillsMsg.json (engine → TS, DOM Skills window).
+export const SkillEntry = z.object({
+  skillid: z.number().int(),
+  level: z.number().int(),
+  masterlevel: z.number().int(),
+});
+export type SkillEntry = z.infer<typeof SkillEntry>;
+export const SkillsData = z.array(SkillEntry);
+export type SkillsData = z.infer<typeof SkillsData>;
 
 export const PingMsg = z.object({
   ...base,
@@ -214,6 +229,7 @@ export const InboundMsg = z.discriminatedUnion("t", [
   StatsDetailMsg,
   InventoryMsg,
   EquipmentMsg,
+  SkillsMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,

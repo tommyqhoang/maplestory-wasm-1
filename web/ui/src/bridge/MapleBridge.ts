@@ -7,6 +7,7 @@ import {
   StatsDetail,
   InventoryData,
   EquipmentData,
+  SkillsData,
 } from "./protocol";
 import { z } from "zod";
 import { useGame } from "../store/store";
@@ -208,6 +209,24 @@ export class MapleBridge {
           s.setEquipment([]);
         } else {
           s.setEquipment(result.data);
+        }
+        break;
+      }
+      case "skills": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] skills: failed to parse json field");
+          s.setSkills([]);
+          break;
+        }
+        const result = SkillsData.safeParse(parsed);
+        if (!result.success) {
+          console.warn("[bridge] skills: invalid payload", result.error.issues);
+          s.setSkills([]);
+        } else {
+          s.setSkills(result.data);
         }
         break;
       }
