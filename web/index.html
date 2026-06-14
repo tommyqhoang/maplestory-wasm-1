@@ -157,6 +157,24 @@
             window.addEventListener('keyup', onKey, true);
         })();
     </script>
+
+    <!--
+      Default render-quality seed. The WASM engine reads `maple.supersample`
+      from localStorage at startup (GraphicsGL::init) to pick its scene
+      supersample factor. Seeding the crisp default (1x) here — before the
+      engine boots — makes a fresh client render sharp pixel art out of the box
+      even against an already-built engine bundle, without a recompile. Only
+      sets it when unset, so a user's saved Quality choice (Settings) wins.
+    -->
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('maple.supersample') === null) {
+                    localStorage.setItem('maple.supersample', '1');
+                }
+            } catch (e) { /* storage unavailable — engine falls back to 1x */ }
+        })();
+    </script>
 </head>
 
 <body>
@@ -186,9 +204,14 @@
             const SCENE_W = GAME_WIDTH * 4;
             const SCENE_H = GAME_HEIGHT * 4;
 
-            // Render Quality: multiplies the canvas backing store above the CSS
-            // size so the engine's supersampled scene is downsampled into the
-            // display for crisp anti-aliased output. 1 = native (display) res.
+            // Backing-store multiplier over the CSS size. This MUST default to
+            // 1 (native): a value >1 makes the canvas backing store larger than
+            // the element's on-screen size, forcing the browser to bilinear-
+            // downscale every frame, which blurs the low-res pixel art and
+            // wastes fill rate. At 1 the backing store equals CSS x devicePixel-
+            // Ratio, so the engine's own sharp-bilinear pass is the only resample
+            // and the result is presented 1:1 (crisp). Kept as a knob only for
+            // experimentation; there is no reason to oversample beyond native.
             function getRenderScale() {
                 try {
                     const v = parseFloat(localStorage.getItem('maple.renderScale'));
@@ -196,10 +219,7 @@
                         return v;
                     }
                 } catch (e) { /* ignore */ }
-                // Default to the maximum: the backing store is clamped to the
-                // supersampled scene resolution anyway, so this just guarantees
-                // the output is rendered at full fidelity out of the box.
-                return 4;
+                return 1;
             }
 
             function syncCanvasResolution(canvas, cssWidth, cssHeight) {

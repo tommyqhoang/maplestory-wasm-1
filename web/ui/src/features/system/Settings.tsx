@@ -12,14 +12,17 @@ function toggleFullscreen(): void {
   }
 }
 
-// Render Quality presets → engine scene supersample factor (1x..4x). This is
-// the real visual-quality lever; the engine reads it at startup (GraphicsGL),
-// so a change applies after the client reloads.
+// Render Quality presets → engine scene supersample factor (1x..4x). The engine
+// reads it at startup (GraphicsGL), so a change applies after the client
+// reloads. Note the tradeoff is the reverse of most games: this is pixel art,
+// so a LOWER factor is sharper (crisp pixel edges) and faster, while a higher
+// factor anti-aliases the edges — smoother but softer and more GPU-intensive.
+// Labels describe the visual result rather than a misleading "low→high".
 const QUALITY_OPTIONS: Array<{ label: string; value: number }> = [
-  { label: "Performance (1x)", value: 1 },
-  { label: "Balanced (2x)", value: 2 },
-  { label: "High (3x)", value: 3 },
-  { label: "Ultra (4x)", value: 4 },
+  { label: "Sharp — crisp pixels (1x)", value: 1 },
+  { label: "Anti-aliased (2x)", value: 2 },
+  { label: "Smooth (3x)", value: 3 },
+  { label: "Smoothest (4x)", value: 4 },
 ];
 
 // The supersample the engine actually booted with (so we can prompt to reload
@@ -27,9 +30,9 @@ const QUALITY_OPTIONS: Array<{ label: string; value: number }> = [
 const BOOT_SUPERSAMPLE: number = (() => {
   try {
     const v = parseInt(localStorage.getItem("maple.supersample") ?? "", 10);
-    return Number.isFinite(v) && v >= 1 && v <= 4 ? v : 4;
+    return Number.isFinite(v) && v >= 1 && v <= 4 ? v : 1;
   } catch {
-    return 4;
+    return 1;
   }
 })();
 

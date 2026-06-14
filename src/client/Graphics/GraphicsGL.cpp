@@ -59,20 +59,25 @@ namespace jrc
         }
 
 #ifdef MS_PLATFORM_WASM
-        // Render the scene supersampled so sprites and text stay crisp when
-        // upscaled. This is the real visual-quality lever (1x = fast but
-        // aliased, 4x = crisp). It is fixed for the session because fonts bake
-        // into the atlas at this factor, so the user's Quality choice is read
-        // here at startup (Settings persists it; changing it reloads the
-        // client). Defaults to the maximum.
+        // Internal scene supersample factor. MapleStory art is low-resolution
+        // pixel art, so supersampling does NOT add detail — it only adds edge
+        // anti-aliasing, which softens the hard pixel edges that make the game
+        // look crisp. Combined with a native-resolution backing store (no
+        // browser downscale; see web/index.html) the sharpest, most authentic
+        // result is 1x, which is also by far the cheapest (4x renders a
+        // 3200x2400 buffer every frame). Higher values trade crispness and
+        // frame rate for smoother edges. Fixed for the session because fonts
+        // bake into the atlas at this factor; the user's Quality choice is read
+        // here at startup (Settings persists it; changing it reloads). Defaults
+        // to 1x (crisp) and clamps to [1, MAX_SUPERSAMPLE].
         constexpr GLshort MAX_SUPERSAMPLE = 4;
         GLshort requested = static_cast<GLshort>(EM_ASM_INT({
             var v = parseInt(localStorage.getItem('maple.supersample'), 10);
-            return (v >= 1 && v <= 4) ? v : 4;
+            return (v >= 1 && v <= 4) ? v : 1;
         }));
         supersample = (requested >= 1 && requested <= MAX_SUPERSAMPLE)
             ? requested
-            : MAX_SUPERSAMPLE;
+            : 1;
 #endif
 
         GLint result = GL_FALSE;

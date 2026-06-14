@@ -186,7 +186,9 @@ export const useGame = create<GameState>((set) => ({
   sfxVolume: loadVolume("maple.sfxVolume", 50),
   bgmMuted: loadBool("maple.bgmMuted", false),
   sfxMuted: loadBool("maple.sfxMuted", false),
-  supersample: loadClampedInt("maple.supersample", 4, 1, 4),
+  // Default 1x: native, crisp pixel art (see GraphicsGL / index.html seed).
+  // Higher values add edge anti-aliasing at the cost of sharpness and frames.
+  supersample: loadClampedInt("maple.supersample", 1, 1, 4),
   showFps: loadBool("maple.showFps", false),
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
