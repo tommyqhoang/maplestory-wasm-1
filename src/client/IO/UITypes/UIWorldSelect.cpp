@@ -76,7 +76,14 @@ namespace jrc
 
     void UIWorldSelect::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // The DOM UI renders world select on WASM; suppress the in-canvas draw.
+        // The element stays alive so the network flow still works.
+        (void)alpha;
+        return;
+#else
         UIElement::draw(alpha);
+#endif
     }
 
     uint8_t UIWorldSelect::get_world_id() const

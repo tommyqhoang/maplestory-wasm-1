@@ -167,6 +167,12 @@ namespace jrc
 
     void UILogin::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // The DOM UI renders the login screen on WASM; suppress the in-canvas
+        // draw. The element stays alive so the network flow still works.
+        (void)alpha;
+        return;
+#else
         UIElement::draw(alpha);
 
         account.draw(position);
@@ -183,6 +189,7 @@ namespace jrc
         }
 
         checkbox[saveid].draw({ position + Point<int16_t>(313, 304) });
+#endif
     }
 
     void UILogin::update()

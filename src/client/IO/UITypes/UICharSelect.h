@@ -52,6 +52,11 @@ namespace jrc
 
         const CharEntry& get_character(int32_t cid);
 
+        // Select the character with the given cid and run the same selection
+        // path as the in-canvas "Start" button (including the PIC flow). Used
+        // by the DOM bridge to drive character select from outside the canvas.
+        void select_character(int32_t cid);
+
     private:
         enum class PicAction
         {

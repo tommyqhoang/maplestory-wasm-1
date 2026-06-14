@@ -144,6 +144,12 @@ namespace jrc
 
     void UICharSelect::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // The DOM UI renders character select on WASM; suppress the in-canvas
+        // draw. The element stays alive so the selection path still works.
+        (void)alpha;
+        return;
+#else
         UIElement::draw(alpha);
 
         for (uint8_t i = 0; i < charcount_relative; ++i)
@@ -176,6 +182,7 @@ namespace jrc
             Point<int16_t> position_slot(130 + (120 * (i % 4)), 250 + (200 * (i > 3)));
             emptyslot.draw(position_slot, alpha);
         }
+#endif
     }
 
     void UICharSelect::update()
@@ -407,6 +414,39 @@ namespace jrc
     {
         pending_pic_action = PicAction::NONE;
         pending_pic_cid = -1;
+    }
+
+    void UICharSelect::select_character(int32_t cid)
+    {
+        size_t index = 0;
+        for (const auto& character : characters)
+        {
+            if (character.cid == cid)
+            {
+                break;
+            }
+
+            index++;
+        }
+
+        if (index >= characters.size())
+        {
+            Console::get().print(
+                __func__,
+                "Warning: Invalid cid (" + std::to_string(cid) + ")"
+            );
+            return;
+        }
+
+        // Point the in-canvas selection at the requested character so that
+        // send_selection() (which keys off selected_*) targets it, then run
+        // the identical path as the "Start" button (incl. the PIC flow).
+        selected_absolute = static_cast<uint8_t>(index);
+        page              = selected_absolute / PAGESIZE;
+        update_counts();
+        update_selection();
+
+        send_selection();
     }
 
     void UICharSelect::send_selection()

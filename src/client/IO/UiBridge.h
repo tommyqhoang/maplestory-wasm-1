@@ -4,9 +4,11 @@
 //////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "../Template/Singleton.h"
+#include "../Net/Login.h"
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace jrc
 {
@@ -24,6 +26,11 @@ namespace jrc
         void emit_chat(const std::string& line, int ctype);
         void emit_pong(int nonce);
 
+        // Entry-flow (login / world select / character select) emits.
+        void emit_login_result(int ok, const std::string& reason);
+        void emit_worlds(const std::vector<World>& worlds);
+        void emit_characters(const std::vector<CharEntry>& chars);
+
         // Dispatch an inbound command (JSON) from JS. Tolerant of bad input.
         void handle_command(const std::string& json);
 
@@ -35,5 +42,9 @@ namespace jrc
         int64_t exp_ = -1;
         std::string name_;
         std::string job_;
+
+        // Entry-flow selection state (set by selectWorld, used by requestCharlist).
+        uint8_t selected_world_ = 0;
+        uint8_t selected_channel_ = 0;
     };
 }

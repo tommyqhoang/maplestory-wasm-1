@@ -24,6 +24,7 @@
 
 #include "../../Configuration.h"
 #include "../../IO/UI.h"
+#include "../../IO/UiBridge.h"
 #include "../../IO/UITypes/UILogin.h"
 #include "../../IO/UITypes/UILoginNotice.h"
 #include "../../IO/UITypes/UIWorldSelect.h"
@@ -56,6 +57,14 @@ namespace jrc
 
                     charselect->clear_pending_pic_request();
                 }
+            }
+
+            // Notify the DOM UI of the login failure (reason 23 = TOS request,
+            // which is auto-accepted below and is not a real failure).
+            if (reason != 23)
+            {
+                UiBridge::get().emit_login_result(
+                    0, "Login failed (reason " + std::to_string(reason) + ")");
             }
 
             // Login unsuccessful. The LoginNotice displayed will contain the specific information.
@@ -94,6 +103,9 @@ namespace jrc
                 Setting<DefaultAccount>::get().save(account.name);
             }
 
+            // Notify the DOM UI that login succeeded.
+            UiBridge::get().emit_login_result(1, "");
+
             // Request the list of worlds and channels online.
             ServerRequestPacket().dispatch();
         }
@@ -127,6 +139,10 @@ namespace jrc
         // Add the world selection screen to the ui.
         UI::get().emplace<UIWorldSelect>(worlds, worldcount);
         UI::get().enable();
+
+        // Mirror the transition to the DOM UI.
+        UiBridge::get().emit_worlds(worlds);
+        UiBridge::get().emit_scene("worldselect");
     }
 
 
@@ -153,6 +169,10 @@ namespace jrc
         // Add the character selection screen.
         UI::get().emplace<UICharSelect>(characters, charcount, slots, channel_id, pic);
         UI::get().enable();
+
+        // Mirror the transition to the DOM UI.
+        UiBridge::get().emit_characters(characters);
+        UiBridge::get().emit_scene("charselect");
     }
 
 

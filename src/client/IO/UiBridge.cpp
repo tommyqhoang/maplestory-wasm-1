@@ -9,7 +9,12 @@
 #include "../Character/CharStats.h"
 #include "../Character/Player.h"
 #include "../Gameplay/Stage.h"
+#include "../Net/Login.h"
 #include "../Net/Packets/MessagingPackets.h"
+#include "../Net/Packets/LoginPackets.h"
+#include "../Character/MapleStat.h"
+#include "UITypes/UICharSelect.h"
+#include "UITypes/UILogin.h"
 
 #include "json/json.hpp"
 
@@ -76,6 +81,65 @@ namespace jrc
         push(j.dump());
     }
 
+    void UiBridge::emit_login_result(int ok, const std::string& reason)
+    {
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_LOGINRESULT},
+            {"ok", ok}, {"reason", reason}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_worlds(const std::vector<World>& worlds)
+    {
+        json arr = json::array();
+        for (const World& w : worlds)
+        {
+            json loads = json::array();
+            for (int32_t load : w.chloads)
+            {
+                loads.push_back(load);
+            }
+            arr.push_back({
+                {"wid", w.wid},
+                {"name", w.name},
+                {"message", w.message},
+                {"channelcount", w.channelcount},
+                {"flag", w.flag},
+                {"channelloads", loads}
+            });
+        }
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_WORLDS},
+            {"json", arr.dump()}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_characters(const std::vector<CharEntry>& chars)
+    {
+        json arr = json::array();
+        for (const CharEntry& c : chars)
+        {
+            const StatsEntry& s = c.stats;
+            arr.push_back({
+                {"cid", c.cid},
+                {"name", s.name},
+                {"level", s.stats[Maplestat::LEVEL]},
+                {"job", s.stats[Maplestat::JOB]},
+                {"str", s.stats[Maplestat::STR]},
+                {"dex", s.stats[Maplestat::DEX]},
+                {"int", s.stats[Maplestat::INT]},
+                {"luk", s.stats[Maplestat::LUK]}
+            });
+        }
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_CHARACTERS},
+            {"json", arr.dump()}
+        };
+        push(j.dump());
+    }
+
     void UiBridge::handle_command(const std::string& jsonstr)
     {
         json j = json::parse(jsonstr, nullptr, false);
@@ -117,6 +181,52 @@ namespace jrc
             {
                 GeneralChatPacket(text, true).dispatch();
             }
+        }
+        else if (t == bridge::MSG_LOGIN)
+        {
+            const std::string account = j.value("account", std::string());
+            const std::string password = j.value("password", std::string());
+            LoginPacket(account, password).dispatch();
+        }
+        else if (t == bridge::MSG_SELECTWORLD)
+        {
+            // Only record the selection here. The actual character-list request
+            // is dispatched by MSG_REQUESTCHARLIST to avoid double-sending the
+            // CHARLIST_REQUEST packet (the in-canvas flow sends it on "enter world").
+            selected_world_ = static_cast<uint8_t>(j.value("world", 0));
+            selected_channel_ = static_cast<uint8_t>(j.value("channel", 0));
+        }
+        else if (t == bridge::MSG_REQUESTCHARLIST)
+        {
+            uint8_t world = static_cast<uint8_t>(j.value("world", (int)selected_world_));
+            uint8_t channel = static_cast<uint8_t>(j.value("channel", (int)selected_channel_));
+            selected_world_ = world;
+            selected_channel_ = channel;
+            CharlistRequestPacket(world, channel).dispatch();
+        }
+        else if (t == bridge::MSG_SELECTCHAR)
+        {
+            int32_t cid = j.value("cid", 0);
+            // Reuse the in-canvas UICharSelect selection path (incl. PIC "1010")
+            // so the exact same packet sequence as the "Start" button is sent.
+            if (auto charselect = UI::get().get_element<UICharSelect>())
+            {
+                charselect->select_character(cid);
+            }
+            else
+            {
+                Console::get().print("[bridge] selectChar: UICharSelect not available");
+            }
+        }
+        else if (t == bridge::MSG_BACKTOLOGIN)
+        {
+            // Return to the login screen (relog). Mirror the in-canvas teardown:
+            // drop entry-flow UIs and re-add the login screen.
+            UI::get().remove(UIElement::WORLDSELECT);
+            UI::get().remove(UIElement::CHARSELECT);
+            UI::get().remove(UIElement::CHARCREATION);
+            UI::get().emplace<UILogin>();
+            UI::get().enable();
         }
     }
 
