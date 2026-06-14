@@ -2,6 +2,8 @@ import "./hud.css";
 import { StatusBar } from "./StatusBar";
 import { Chat } from "./Chat";
 import { StatsWindow } from "../stats/StatsWindow";
+import { InventoryWindow } from "../inventory/InventoryWindow";
+import { EquipmentWindow } from "../equipment/EquipmentWindow";
 
 export function Hud() {
   return (
@@ -9,6 +11,8 @@ export function Hud() {
       <StatusBar />
       <Chat />
       <StatsWindow />
+      <InventoryWindow />
+      <EquipmentWindow />
     </>
   );
 }
