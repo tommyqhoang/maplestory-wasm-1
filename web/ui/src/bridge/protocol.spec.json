@@ -53,6 +53,58 @@
       "type": "sendChat",
       "dir": "in",
       "fields": [{ "name": "text", "type": "string" }]
+    },
+    {
+      "type": "loginResult",
+      "dir": "out",
+      "fields": [
+        { "name": "ok", "type": "int" },
+        { "name": "reason", "type": "string" }
+      ]
+    },
+    {
+      "type": "worlds",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "characters",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "login",
+      "dir": "in",
+      "fields": [
+        { "name": "account", "type": "string" },
+        { "name": "password", "type": "string" }
+      ]
+    },
+    {
+      "type": "selectWorld",
+      "dir": "in",
+      "fields": [
+        { "name": "world", "type": "int" },
+        { "name": "channel", "type": "int" }
+      ]
+    },
+    {
+      "type": "requestCharlist",
+      "dir": "in",
+      "fields": [
+        { "name": "world", "type": "int" },
+        { "name": "channel", "type": "int" }
+      ]
+    },
+    {
+      "type": "selectChar",
+      "dir": "in",
+      "fields": [{ "name": "cid", "type": "int" }]
+    },
+    {
+      "type": "backToLogin",
+      "dir": "in",
+      "fields": []
     }
   ]
 }

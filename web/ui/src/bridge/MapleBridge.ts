@@ -1,4 +1,11 @@
-import { InboundMsg, OutboundCmd, PROTOCOL_VERSION } from "./protocol";
+import {
+  InboundMsg,
+  OutboundCmd,
+  PROTOCOL_VERSION,
+  WorldInfo,
+  CharInfo,
+} from "./protocol";
+import { z } from "zod";
 import { useGame } from "../store/store";
 
 type SendFn = (json: string) => void;
@@ -39,6 +46,26 @@ export class MapleBridge {
     this.send({ v: PROTOCOL_VERSION, t: "sendChat", text });
   }
 
+  login(account: string, password: string): void {
+    this.send({ v: PROTOCOL_VERSION, t: "login", account, password });
+  }
+
+  selectWorld(world: number, channel: number): void {
+    this.send({ v: PROTOCOL_VERSION, t: "selectWorld", world, channel });
+  }
+
+  requestCharlist(world: number, channel: number): void {
+    this.send({ v: PROTOCOL_VERSION, t: "requestCharlist", world, channel });
+  }
+
+  selectChar(cid: number): void {
+    this.send({ v: PROTOCOL_VERSION, t: "selectChar", cid });
+  }
+
+  backToLogin(): void {
+    this.send({ v: PROTOCOL_VERSION, t: "backToLogin" });
+  }
+
   private route(msg: InboundMsg): void {
     const s = useGame.getState();
     switch (msg.t) {
@@ -64,6 +91,51 @@ export class MapleBridge {
       case "chat":
         s.addChatLine({ line: msg.line, ctype: msg.ctype });
         break;
+      case "loginResult":
+        s.setLoginResult({ ok: msg.ok === 1, reason: msg.reason });
+        break;
+      case "worlds": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] worlds: failed to parse json field");
+          s.setWorlds([]);
+          break;
+        }
+        const result = z.array(WorldInfo).safeParse(parsed);
+        if (!result.success) {
+          console.warn(
+            "[bridge] worlds: invalid world list",
+            result.error.issues,
+          );
+          s.setWorlds([]);
+        } else {
+          s.setWorlds(result.data);
+        }
+        break;
+      }
+      case "characters": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] characters: failed to parse json field");
+          s.setCharacters([]);
+          break;
+        }
+        const result = z.array(CharInfo).safeParse(parsed);
+        if (!result.success) {
+          console.warn(
+            "[bridge] characters: invalid character list",
+            result.error.issues,
+          );
+          s.setCharacters([]);
+        } else {
+          s.setCharacters(result.data);
+        }
+        break;
+      }
     }
   }
 }

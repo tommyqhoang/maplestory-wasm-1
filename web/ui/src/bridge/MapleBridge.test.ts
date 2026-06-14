@@ -93,3 +93,81 @@ test("chat store caps at 200 entries", () => {
   // Last entry should be the most recent
   expect(chat[chat.length - 1].line).toBe("msg249");
 });
+
+// Phase 2 Task 1 — entry flow tests
+
+test("recv loginResult ok=0 sets store.loginResult = {ok:false, reason:'bad'}", () => {
+  const { bridge } = makeBridge();
+  bridge.recv(JSON.stringify({ v: 1, t: "loginResult", ok: 0, reason: "bad" }));
+  expect(useGame.getState().loginResult).toEqual({ ok: false, reason: "bad" });
+});
+
+test("recv worlds with valid json populates store.worlds", () => {
+  const { bridge } = makeBridge();
+  const worldJson = JSON.stringify([
+    {
+      wid: 0,
+      name: "Scania",
+      message: "",
+      channelcount: 2,
+      flag: 0,
+      channelloads: [1, 1],
+    },
+  ]);
+  bridge.recv(JSON.stringify({ v: 1, t: "worlds", json: worldJson }));
+  const worlds = useGame.getState().worlds;
+  expect(worlds.length).toBe(1);
+  expect(worlds[0].name).toBe("Scania");
+});
+
+test("recv worlds with malformed json sets store.worlds = [] without throwing", () => {
+  const { bridge } = makeBridge();
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "worlds", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().worlds).toEqual([]);
+});
+
+test("recv characters with valid CharInfo populates store.characters", () => {
+  const { bridge } = makeBridge();
+  const charJson = JSON.stringify([
+    {
+      cid: 1,
+      name: "HeroChar",
+      level: 10,
+      job: 100,
+      str: 4,
+      dex: 4,
+      int: 4,
+      luk: 4,
+    },
+  ]);
+  bridge.recv(JSON.stringify({ v: 1, t: "characters", json: charJson }));
+  const chars = useGame.getState().characters;
+  expect(chars.length).toBe(1);
+  expect(chars[0].name).toBe("HeroChar");
+  expect(chars[0].level).toBe(10);
+});
+
+test("bridge.login sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.login("a", "b");
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "login",
+    account: "a",
+    password: "b",
+  });
+});
+
+test("bridge.selectChar sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.selectChar(5);
+  expect(JSON.parse(sent[0])).toEqual({ v: 1, t: "selectChar", cid: 5 });
+});
+
+test("bridge.backToLogin sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.backToLogin();
+  expect(JSON.parse(sent[0])).toEqual({ v: 1, t: "backToLogin" });
+});

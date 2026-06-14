@@ -10,4 +10,12 @@ constexpr const char* MSG_CHARACTER = "character";
 constexpr const char* MSG_CHAT = "chat";
 constexpr const char* MSG_OPENWINDOW = "openWindow";
 constexpr const char* MSG_SENDCHAT = "sendChat";
+constexpr const char* MSG_LOGINRESULT = "loginResult";
+constexpr const char* MSG_WORLDS = "worlds";
+constexpr const char* MSG_CHARACTERS = "characters";
+constexpr const char* MSG_LOGIN = "login";
+constexpr const char* MSG_SELECTWORLD = "selectWorld";
+constexpr const char* MSG_REQUESTCHARLIST = "requestCharlist";
+constexpr const char* MSG_SELECTCHAR = "selectChar";
+constexpr const char* MSG_BACKTOLOGIN = "backToLogin";
 }}

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { WorldInfo, CharInfo } from "../bridge/protocol";
 
 export interface Stats {
   hp: number;
@@ -20,11 +21,17 @@ interface GameState {
   lastPong: number | null;
   character: { name: string; job: string };
   chat: ChatLine[];
+  loginResult: { ok: boolean; reason: string } | null;
+  worlds: WorldInfo[];
+  characters: CharInfo[];
   setScene: (name: string) => void;
   setStats: (s: Stats) => void;
   setPong: (nonce: number) => void;
   setCharacter: (c: { name: string; job: string }) => void;
   addChatLine: (l: ChatLine) => void;
+  setLoginResult: (r: { ok: boolean; reason: string }) => void;
+  setWorlds: (worlds: WorldInfo[]) => void;
+  setCharacters: (characters: CharInfo[]) => void;
 }
 
 export const useGame = create<GameState>((set) => ({
@@ -33,6 +40,9 @@ export const useGame = create<GameState>((set) => ({
   lastPong: null,
   character: { name: "", job: "" },
   chat: [],
+  loginResult: null,
+  worlds: [],
+  characters: [],
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
   setPong: (nonce) => set({ lastPong: nonce }),
@@ -41,4 +51,7 @@ export const useGame = create<GameState>((set) => ({
     set((state) => ({
       chat: [...state.chat, l].slice(-200),
     })),
+  setLoginResult: (loginResult) => set({ loginResult }),
+  setWorlds: (worlds) => set({ worlds }),
+  setCharacters: (characters) => set({ characters }),
 }));

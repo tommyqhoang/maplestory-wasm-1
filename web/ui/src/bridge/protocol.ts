@@ -38,6 +38,47 @@ export const ChatMsg = z.object({
   ctype: z.number().int(),
 });
 
+// Inner data schemas for variable-length list fields
+export const WorldInfo = z.object({
+  wid: z.number().int(),
+  name: z.string(),
+  message: z.string(),
+  channelcount: z.number().int(),
+  flag: z.number().int(),
+  channelloads: z.array(z.number().int()),
+});
+export type WorldInfo = z.infer<typeof WorldInfo>;
+
+export const CharInfo = z.object({
+  cid: z.number().int(),
+  name: z.string(),
+  level: z.number().int(),
+  job: z.number().int(),
+  str: z.number().int(),
+  dex: z.number().int(),
+  int: z.number().int(),
+  luk: z.number().int(),
+});
+export type CharInfo = z.infer<typeof CharInfo>;
+
+// Inbound message schemas (engine → TS)
+export const LoginResultMsg = z.object({
+  ...base,
+  t: z.literal("loginResult"),
+  ok: z.number().int(),
+  reason: z.string(),
+});
+export const WorldsMsg = z.object({
+  ...base,
+  t: z.literal("worlds"),
+  json: z.string(),
+});
+export const CharactersMsg = z.object({
+  ...base,
+  t: z.literal("characters"),
+  json: z.string(),
+});
+
 export const PingMsg = z.object({
   ...base,
   t: z.literal("ping"),
@@ -54,17 +95,54 @@ export const SendChatCmd = z.object({
   text: z.string(),
 });
 
+// Outbound command schemas (TS → engine)
+export const LoginCmd = z.object({
+  ...base,
+  t: z.literal("login"),
+  account: z.string(),
+  password: z.string(),
+});
+export const SelectWorldCmd = z.object({
+  ...base,
+  t: z.literal("selectWorld"),
+  world: z.number().int(),
+  channel: z.number().int(),
+});
+export const RequestCharlistCmd = z.object({
+  ...base,
+  t: z.literal("requestCharlist"),
+  world: z.number().int(),
+  channel: z.number().int(),
+});
+export const SelectCharCmd = z.object({
+  ...base,
+  t: z.literal("selectChar"),
+  cid: z.number().int(),
+});
+export const BackToLoginCmd = z.object({
+  ...base,
+  t: z.literal("backToLogin"),
+});
+
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
   SceneMsg,
   StatsMsg,
   CharacterMsg,
   ChatMsg,
+  LoginResultMsg,
+  WorldsMsg,
+  CharactersMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,
   OpenWindowCmd,
   SendChatCmd,
+  LoginCmd,
+  SelectWorldCmd,
+  RequestCharlistCmd,
+  SelectCharCmd,
+  BackToLoginCmd,
 ]);
 
 export type InboundMsg = z.infer<typeof InboundMsg>;
