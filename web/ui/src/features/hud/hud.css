@@ -1,0 +1,127 @@
+.hud-status-bar {
+  position: fixed;
+  bottom: var(--sp-4);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, calc(100vw - 32px));
+  z-index: 10;
+}
+
+.hud-chat {
+  position: fixed;
+  bottom: calc(var(--sp-4) + 110px);
+  left: var(--sp-4);
+  width: min(340px, calc(100vw - 32px));
+  z-index: 10;
+}
+
+.hud-char-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.hud-char-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hud-char-job {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.hud-char-level {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-orange);
+  letter-spacing: 0.03em;
+}
+
+.hud-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.hud-menu-row {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* Chat */
+.hud-chat-messages {
+  height: 140px;
+  overflow-y: auto;
+  margin-bottom: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 140, 60, 0.3) transparent;
+}
+
+.hud-chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.hud-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hud-chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 140, 60, 0.35);
+  border-radius: 2px;
+}
+
+.hud-chat-line {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* ctype coloring */
+.hud-chat-line[data-ctype="1"] {
+  color: #ffd966;
+}
+.hud-chat-line[data-ctype="2"] {
+  color: #88d8b0;
+}
+.hud-chat-line[data-ctype="3"] {
+  color: #ff9eb5;
+}
+.hud-chat-line[data-ctype="4"] {
+  color: var(--accent-orange);
+}
+
+.hud-chat-input-row {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.hud-chat-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  padding: var(--sp-1) var(--sp-2);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.hud-chat-input:focus {
+  border-color: rgba(255, 140, 60, 0.55);
+}
+
+.hud-chat-input::placeholder {
+  color: var(--text-muted);
+}

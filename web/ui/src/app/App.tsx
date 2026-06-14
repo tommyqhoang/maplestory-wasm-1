@@ -1,7 +1,22 @@
 import { useGame } from "../store/store";
-import { bridge } from "../bridge/useBridge";
+import { Hud } from "../features/hud/Hud";
 
 export function App() {
+  const scene = useGame((s) => s.scene);
+
+  if (scene === "ingame") {
+    return <Hud />;
+  }
+
+  // Dev-only probe: shows bridge state during loading/charselect scenes
+  if ((import.meta as { env?: { DEV?: boolean } }).env?.DEV) {
+    return <DevProbe />;
+  }
+
+  return null;
+}
+
+function DevProbe() {
   const scene = useGame((s) => s.scene);
   const stats = useGame((s) => s.stats);
   const lastPong = useGame((s) => s.lastPong);
@@ -15,9 +30,6 @@ export function App() {
         MP: {stats.mp} / {stats.maxMp}
       </div>
       <div>last pong: {lastPong ?? "—"}</div>
-      <button onClick={() => bridge.ping(Date.now() % 100000)}>
-        ping engine
-      </button>
     </div>
   );
 }
