@@ -109,6 +109,11 @@ export const NpcDialogMsg = z.object({
   t: z.literal("npcDialog"),
   json: z.string(),
 });
+export const ShopMsg = z.object({
+  ...base,
+  t: z.literal("shop"),
+  json: z.string(),
+});
 
 // Parsed payload of StatsDetailMsg.json (engine → TS, detailed Stats window)
 export const StatsDetail = z.object({
@@ -184,6 +189,23 @@ export const NpcDialogPayload = z.object({
 });
 export type NpcDialogPayload = z.infer<typeof NpcDialogPayload>;
 
+// Parsed payload of ShopMsg.json (engine → TS, DOM NPC shop window).
+// active:false means "no shop" (the DOM clears the window). buyable defaults
+// to true when omitted by the engine.
+export const ShopItem = z.object({
+  slot: z.number().int(),
+  itemid: z.number().int(),
+  price: z.number().int(),
+  buyable: z.boolean().optional().default(true),
+});
+export type ShopItem = z.infer<typeof ShopItem>;
+export const ShopPayload = z.object({
+  active: z.boolean(),
+  npcid: z.number().int().optional().default(0),
+  items: z.array(ShopItem),
+});
+export type ShopPayload = z.infer<typeof ShopPayload>;
+
 export const PingMsg = z.object({
   ...base,
   t: z.literal("ping"),
@@ -245,6 +267,14 @@ export const NpcRespondCmd = z.object({
   selection: z.number().int(),
   text: z.string(),
 });
+export const ShopActionCmd = z.object({
+  ...base,
+  t: z.literal("shopAction"),
+  action: z.string(),
+  slot: z.number().int(),
+  itemid: z.number().int(),
+  quantity: z.number().int(),
+});
 
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
@@ -261,6 +291,7 @@ export const InboundMsg = z.discriminatedUnion("t", [
   EquipmentMsg,
   SkillsMsg,
   NpcDialogMsg,
+  ShopMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,
@@ -274,6 +305,7 @@ export const OutboundCmd = z.discriminatedUnion("t", [
   RequestAssetCmd,
   AllocateApCmd,
   NpcRespondCmd,
+  ShopActionCmd,
 ]);
 
 export type InboundMsg = z.infer<typeof InboundMsg>;

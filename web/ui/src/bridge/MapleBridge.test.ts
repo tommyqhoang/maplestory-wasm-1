@@ -390,3 +390,77 @@ test("bridge.npcRespond sends correct command", () => {
     text: "",
   });
 });
+
+// Phase 4 Task 2 — NPC shop window
+
+test("recv shop active populates store.shop with items", () => {
+  const { bridge } = makeBridge();
+  const payload = {
+    active: true,
+    npcid: 9000000,
+    items: [
+      { slot: 0, itemid: 2000000, price: 100, buyable: true },
+      { slot: 1, itemid: 2000001, price: 200 },
+    ],
+  };
+  bridge.recv(
+    JSON.stringify({ v: 1, t: "shop", json: JSON.stringify(payload) }),
+  );
+  const shop = useGame.getState().shop;
+  expect(shop).not.toBeNull();
+  expect(shop?.active).toBe(true);
+  expect(shop?.npcid).toBe(9000000);
+  expect(shop?.items.length).toBe(2);
+  expect(shop?.items[0].itemid).toBe(2000000);
+  expect(shop?.items[0].price).toBe(100);
+  // buyable defaults to true when omitted
+  expect(shop?.items[1].buyable).toBe(true);
+});
+
+test("recv shop active:false clears store.shop", () => {
+  const { bridge } = makeBridge();
+  useGame.getState().setShop({ active: true, npcid: 1, items: [] });
+  bridge.recv(
+    JSON.stringify({
+      v: 1,
+      t: "shop",
+      json: JSON.stringify({ active: false }),
+    }),
+  );
+  expect(useGame.getState().shop).toBeNull();
+});
+
+test("recv shop with malformed json clears without throwing", () => {
+  const { bridge } = makeBridge();
+  useGame.getState().setShop({ active: true, npcid: 1, items: [] });
+  expect(() =>
+    bridge.recv(JSON.stringify({ v: 1, t: "shop", json: "not json" })),
+  ).not.toThrow();
+  expect(useGame.getState().shop).toBeNull();
+});
+
+test("bridge.shopAction sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.shopAction("buy", 0, 2000, 1);
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "shopAction",
+    action: "buy",
+    slot: 0,
+    itemid: 2000,
+    quantity: 1,
+  });
+});
+
+test("bridge.shopAction exit uses defaults", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.shopAction("exit");
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "shopAction",
+    action: "exit",
+    slot: 0,
+    itemid: 0,
+    quantity: 1,
+  });
+});

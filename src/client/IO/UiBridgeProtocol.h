@@ -27,4 +27,6 @@ constexpr const char* MSG_SKILLS = "skills";
 constexpr const char* MSG_ALLOCATEAP = "allocateAp";
 constexpr const char* MSG_NPCDIALOG = "npcDialog";
 constexpr const char* MSG_NPCRESPOND = "npcRespond";
+constexpr const char* MSG_SHOP = "shop";
+constexpr const char* MSG_SHOPACTION = "shopAction";
 }}

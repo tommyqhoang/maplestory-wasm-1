@@ -9,6 +9,7 @@ import {
   EquipmentData,
   SkillsData,
   NpcDialogPayload,
+  ShopPayload,
 } from "./protocol";
 import { z } from "zod";
 import { useGame } from "../store/store";
@@ -86,6 +87,17 @@ export class MapleBridge {
       action,
       selection,
       text,
+    });
+  }
+
+  shopAction(action: string, slot = 0, itemid = 0, quantity = 1): void {
+    this.send({
+      v: PROTOCOL_VERSION,
+      t: "shopAction",
+      action,
+      slot,
+      itemid,
+      quantity,
     });
   }
 
@@ -262,6 +274,27 @@ export class MapleBridge {
           s.setNpcDialog(null);
         } else {
           s.setNpcDialog(result.data);
+        }
+        break;
+      }
+      case "shop": {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(msg.json);
+        } catch {
+          console.warn("[bridge] shop: failed to parse json field");
+          s.setShop(null);
+          break;
+        }
+        const result = ShopPayload.safeParse(parsed);
+        if (!result.success) {
+          console.warn("[bridge] shop: invalid payload", result.error.issues);
+          s.setShop(null);
+        } else if (!result.data.active) {
+          // active:false means "no shop" — clear the store.
+          s.setShop(null);
+        } else {
+          s.setShop(result.data);
         }
         break;
       }

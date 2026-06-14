@@ -157,6 +157,21 @@
         { "name": "selection", "type": "int" },
         { "name": "text", "type": "string" }
       ]
+    },
+    {
+      "type": "shop",
+      "dir": "out",
+      "fields": [{ "name": "json", "type": "string" }]
+    },
+    {
+      "type": "shopAction",
+      "dir": "in",
+      "fields": [
+        { "name": "action", "type": "string" },
+        { "name": "slot", "type": "int" },
+        { "name": "itemid", "type": "int" },
+        { "name": "quantity", "type": "int" }
+      ]
     }
   ]
 }
