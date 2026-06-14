@@ -32,6 +32,8 @@
 
 namespace jrc
 {
+    class UIStateGame;
+
     class UI : public Singleton<UI>
     {
     public:
@@ -46,6 +48,9 @@ namespace jrc
         void init();
         void draw(float alpha) const;
         void update();
+
+        // Returns the active in-game UI state, or nullptr when not in game.
+        UIStateGame* get_state_game() const;
 
         void enable();
         void disable();

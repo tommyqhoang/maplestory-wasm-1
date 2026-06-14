@@ -18,6 +18,7 @@
 #include "UIStateLogin.h"
 
 #include "UI.h"
+#include "UiBridge.h"
 #include "UITypes/UILogin.h"
 
 #include "../Constants.h"
@@ -32,6 +33,8 @@ namespace jrc
         cursor_captured = UIElement::NONE;
         view_width = Constants::viewwidth();
         view_height = Constants::viewheight();
+
+        UiBridge::get().emit_scene("login");
 
         emplace<UILogin>();
     }

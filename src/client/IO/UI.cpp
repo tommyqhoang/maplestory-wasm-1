@@ -44,6 +44,11 @@ namespace jrc
         change_state(LOGIN);
     }
 
+    UIStateGame* UI::get_state_game() const
+    {
+        return dynamic_cast<UIStateGame*>(state.get());
+    }
+
     void UI::draw(float alpha) const
     {
         state->draw(alpha, cursor.get_position());

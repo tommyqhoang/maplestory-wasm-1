@@ -17,6 +17,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "UIStateGame.h"
 #include "UI.h"
+#include "UiBridge.h"
 
 #include "UITypes/UIStatusMessenger.h"
 #include "UITypes/UIStatusBar.h"
@@ -74,6 +75,8 @@ namespace jrc
         tooltipparent = Tooltip::NONE;
         view_width    = Constants::viewwidth();
         view_height   = Constants::viewheight();
+
+        UiBridge::get().emit_scene("ingame");
 
         const CharLook&  look      = Stage::get().get_player().get_look();
         const CharStats& stats     = Stage::get().get_player().get_stats();

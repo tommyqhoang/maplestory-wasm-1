@@ -28,6 +28,7 @@
 #include "Gameplay/Combat/DamageNumber.h"
 #include "Gameplay/Stage.h"
 #include "IO/UI.h"
+#include "IO/UiBridge.h"
 #include "IO/Window.h"
 #include "Net/Session.h"
 #include "Util/NxFiles.h"
@@ -106,6 +107,7 @@ namespace jrc
         Window::get().update();
         Stage::get().update();
         UI::get().update();
+        UiBridge::get().poll_emit();
         Session::get().read();
     }
 
