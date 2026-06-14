@@ -25,18 +25,47 @@ export const StatsMsg = z.object({
   exp: z.number().int(),
 });
 
+export const CharacterMsg = z.object({
+  ...base,
+  t: z.literal("character"),
+  name: z.string(),
+  job: z.string(),
+});
+export const ChatMsg = z.object({
+  ...base,
+  t: z.literal("chat"),
+  line: z.string(),
+  ctype: z.number().int(),
+});
+
 export const PingMsg = z.object({
   ...base,
   t: z.literal("ping"),
   nonce: z.number().int(),
+});
+export const OpenWindowCmd = z.object({
+  ...base,
+  t: z.literal("openWindow"),
+  window: z.string(),
+});
+export const SendChatCmd = z.object({
+  ...base,
+  t: z.literal("sendChat"),
+  text: z.string(),
 });
 
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
   SceneMsg,
   StatsMsg,
+  CharacterMsg,
+  ChatMsg,
 ]);
-export const OutboundCmd = z.discriminatedUnion("t", [PingMsg]);
+export const OutboundCmd = z.discriminatedUnion("t", [
+  PingMsg,
+  OpenWindowCmd,
+  SendChatCmd,
+]);
 
 export type InboundMsg = z.infer<typeof InboundMsg>;
 export type OutboundCmd = z.infer<typeof OutboundCmd>;

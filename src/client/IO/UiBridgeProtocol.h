@@ -6,4 +6,8 @@ constexpr const char* MSG_PING = "ping";
 constexpr const char* MSG_PONG = "pong";
 constexpr const char* MSG_SCENE = "scene";
 constexpr const char* MSG_STATS = "stats";
+constexpr const char* MSG_CHARACTER = "character";
+constexpr const char* MSG_CHAT = "chat";
+constexpr const char* MSG_OPENWINDOW = "openWindow";
+constexpr const char* MSG_SENDCHAT = "sendChat";
 }}

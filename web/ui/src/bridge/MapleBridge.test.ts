@@ -50,3 +50,46 @@ test("send throws on an invalid command", () => {
   // @ts-expect-error invalid command shape
   expect(() => bridge.send({ v: 1, t: "ping" })).toThrow();
 });
+
+test("recv routes character message into store", () => {
+  const { bridge } = makeBridge();
+  bridge.recv(
+    JSON.stringify({ v: 1, t: "character", name: "WasmHero", job: "Beginner" }),
+  );
+  expect(useGame.getState().character.name).toBe("WasmHero");
+});
+
+test("recv routes chat message into store", () => {
+  const { bridge } = makeBridge();
+  bridge.recv(JSON.stringify({ v: 1, t: "chat", line: "hello", ctype: 0 }));
+  const chat = useGame.getState().chat;
+  expect(chat[chat.length - 1].line).toBe("hello");
+});
+
+test("bridge.openWindow sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.openWindow("inventory");
+  expect(JSON.parse(sent[0])).toEqual({
+    v: 1,
+    t: "openWindow",
+    window: "inventory",
+  });
+});
+
+test("bridge.sendChat sends correct command", () => {
+  const { bridge, sent } = makeBridge();
+  bridge.sendChat("hi");
+  expect(JSON.parse(sent[0])).toEqual({ v: 1, t: "sendChat", text: "hi" });
+});
+
+test("chat store caps at 200 entries", () => {
+  const { bridge } = makeBridge();
+  // Send 250 chat messages
+  for (let i = 0; i < 250; i++) {
+    bridge.recv(JSON.stringify({ v: 1, t: "chat", line: `msg${i}`, ctype: 0 }));
+  }
+  const chat = useGame.getState().chat;
+  expect(chat.length).toBeLessThanOrEqual(200);
+  // Last entry should be the most recent
+  expect(chat[chat.length - 1].line).toBe("msg249");
+});

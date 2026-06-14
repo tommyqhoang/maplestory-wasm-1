@@ -27,6 +27,32 @@
         { "name": "level", "type": "int" },
         { "name": "exp", "type": "long" }
       ]
+    },
+    {
+      "type": "character",
+      "dir": "out",
+      "fields": [
+        { "name": "name", "type": "string" },
+        { "name": "job", "type": "string" }
+      ]
+    },
+    {
+      "type": "chat",
+      "dir": "out",
+      "fields": [
+        { "name": "line", "type": "string" },
+        { "name": "ctype", "type": "int" }
+      ]
+    },
+    {
+      "type": "openWindow",
+      "dir": "in",
+      "fields": [{ "name": "window", "type": "string" }]
+    },
+    {
+      "type": "sendChat",
+      "dir": "in",
+      "fields": [{ "name": "text", "type": "string" }]
     }
   ]
 }

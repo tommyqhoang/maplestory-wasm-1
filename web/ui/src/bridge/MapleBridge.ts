@@ -31,6 +31,14 @@ export class MapleBridge {
     this.send({ v: PROTOCOL_VERSION, t: "ping", nonce });
   }
 
+  openWindow(window: string): void {
+    this.send({ v: PROTOCOL_VERSION, t: "openWindow", window });
+  }
+
+  sendChat(text: string): void {
+    this.send({ v: PROTOCOL_VERSION, t: "sendChat", text });
+  }
+
   private route(msg: InboundMsg): void {
     const s = useGame.getState();
     switch (msg.t) {
@@ -49,6 +57,12 @@ export class MapleBridge {
         break;
       case "pong":
         s.setPong(msg.nonce);
+        break;
+      case "character":
+        s.setCharacter({ name: msg.name, job: msg.job });
+        break;
+      case "chat":
+        s.addChatLine({ line: msg.line, ctype: msg.ctype });
         break;
     }
   }
