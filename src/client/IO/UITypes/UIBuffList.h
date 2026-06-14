@@ -23,7 +23,10 @@
 #include "../../Constants.h"
 #include "../../Graphics/Texture.h"
 
+#include <cstdint>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace jrc
 {
@@ -34,6 +37,9 @@ namespace jrc
 
         void draw(Point<int16_t> position, float alpha) const;
         bool update();
+
+        int32_t get_buffid() const;
+        int32_t get_duration() const;
 
     private:
         static const uint16_t FLASH_TIME = 3'000;
@@ -62,6 +68,12 @@ namespace jrc
         CursorResult send_cursor(bool pressed, Point<int16_t> position) override;
 
         void add_buff(int32_t buffid, int32_t duration);
+
+        // Snapshot of the currently active buffs as (buffid, remaining-duration)
+        // pairs. buffid > 0 is a skill id; buffid < 0 is an item-sourced buff
+        // (encoded as -itemid). Consumed by UiBridge::poll_emit for the DOM
+        // buff-icon bar.
+        std::vector<std::pair<int32_t, int32_t>> get_buffs() const;
 
     private:
         std::unordered_map<int32_t, BuffIcon> icons;

@@ -23,6 +23,7 @@
 #include "UITypes/UILogin.h"
 #include "UITypes/UINpcTalk.h"
 #include "UITypes/UIShop.h"
+#include "UITypes/UIBuffList.h"
 
 #include "../Util/Misc.h"
 
@@ -233,6 +234,57 @@ namespace jrc
         json j = {
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_SKILLS},
             {"json", payload}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_buffs(const std::vector<std::pair<int32_t, int32_t>>& buffs)
+    {
+        json arr = json::array();
+        for (const auto& buff : buffs)
+        {
+            // The DOM buff bar resolves icons via the "skill/<id>" asset key,
+            // so only skill-sourced buffs (positive ids) are surfaced. Negative
+            // ids are item-sourced buffs the bar cannot key on yet.
+            if (buff.first < 0)
+            {
+                continue;
+            }
+            // Round the remaining duration to whole seconds (in ms). The buff
+            // duration decrements every engine tick, so emitting the raw value
+            // would change the signature every frame and flood the bridge. The
+            // DOM bar only shows second-granularity, so 1s buckets keep the
+            // self-diff effective (≈1 push per buff per second).
+            int32_t dur_s = buff.second > 0 ? (buff.second + 999) / 1000 : 0;
+            arr.push_back({
+                {"skillid", buff.first},
+                {"duration", dur_s * 1000}
+            });
+        }
+
+        std::string payload = arr.dump();
+        if (payload == buffs_sig_)
+        {
+            return;
+        }
+        buffs_sig_ = payload;
+
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_BUFFS},
+            {"json", payload}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_notice(const std::string& text, const std::string& ntype)
+    {
+        json payload = {
+            {"text", text},
+            {"ntype", ntype}
+        };
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_NOTICE},
+            {"json", payload.dump()}
         };
         push(j.dump());
     }
@@ -785,6 +837,15 @@ namespace jrc
         // Learned skills for the DOM Skills window. Self-diffs via an internal
         // signature, so this only pushes a message when the skill set changes.
         emit_skills();
+
+        // Active buffs for the DOM buff-icon bar. Read from the in-canvas
+        // UIBuffList (populated by ApplyBuffHandler) and self-diffed via a
+        // serialized-payload signature, so this only pushes when the buff set
+        // (or rounded durations) actually change frame-to-frame.
+        if (auto bufflist = UI::get().get_element<UIBuffList>())
+        {
+            emit_buffs(bufflist->get_buffs());
+        }
     }
 }
 

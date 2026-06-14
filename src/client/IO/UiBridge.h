@@ -36,6 +36,15 @@ namespace jrc
         // Builds and emits the learned-skills payload (skill id + level +
         // master level) consumed by the DOM Skills window. Self-diffs.
         void emit_skills();
+        // Builds and emits the active-buffs payload (skill id + remaining
+        // duration in ms per active buff) consumed by the DOM buff-icon bar.
+        // Self-diffs via a serialized-payload signature. The buff source is the
+        // in-canvas UIBuffList, which is populated by ApplyBuffHandler.
+        void emit_buffs(const std::vector<std::pair<int32_t, int32_t>>& buffs);
+        // Pushes a transient system notice to the DOM notification toasts.
+        // Additive: callers also keep the existing in-canvas message. ntype is
+        // a free-form category string (defaults to "system" on the DOM side).
+        void emit_notice(const std::string& text, const std::string& ntype = "system");
         void emit_character(const std::string& name, const std::string& job);
         void emit_chat(const std::string& line, int ctype);
         void emit_pong(int nonce);
@@ -96,6 +105,7 @@ namespace jrc
         std::string inventory_sig_;
         std::string equipment_sig_;
         std::string skills_sig_;
+        std::string buffs_sig_;
 
         // Entry-flow selection state (set by selectWorld, used by requestCharlist).
         uint8_t selected_world_ = 0;

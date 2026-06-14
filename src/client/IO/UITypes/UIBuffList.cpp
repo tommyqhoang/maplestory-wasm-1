@@ -70,6 +70,16 @@ namespace jrc
         return duration < Constants::TIMESTEP;
     }
 
+    int32_t BuffIcon::get_buffid() const
+    {
+        return buffid;
+    }
+
+    int32_t BuffIcon::get_duration() const
+    {
+        return duration;
+    }
+
 
     UIBuffList::UIBuffList()
     {
@@ -79,12 +89,20 @@ namespace jrc
 
     void UIBuffList::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // On the WASM/DOM build the active buffs are rendered by the React
+        // buff-icon bar (fed via UiBridge::emit_buffs). Suppress the in-canvas
+        // strip so it does not double-render. The buff list itself stays alive
+        // (update/expiry/get_buffs all run as normal).
+        (void)alpha;
+#else
         Point<int16_t> icpos = position;
         for (auto& icon : icons)
         {
             icon.second.draw(icpos, alpha);
             icpos.shift_x(-32);
         }
+#endif
     }
 
     void UIBuffList::update()
@@ -124,5 +142,19 @@ namespace jrc
             std::forward_as_tuple(buffid),
             std::forward_as_tuple(buffid, duration)
         );
+    }
+
+    std::vector<std::pair<int32_t, int32_t>> UIBuffList::get_buffs() const
+    {
+        std::vector<std::pair<int32_t, int32_t>> buffs;
+        buffs.reserve(icons.size());
+        for (const auto& entry : icons)
+        {
+            buffs.emplace_back(
+                entry.second.get_buffid(),
+                entry.second.get_duration()
+            );
+        }
+        return buffs;
     }
 }

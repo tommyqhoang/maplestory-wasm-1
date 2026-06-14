@@ -5,6 +5,7 @@
 #include "../../Data/ItemData.h"
 #include "../../Gameplay/Stage.h"
 #include "../../IO/UI.h"
+#include "../../IO/UiBridge.h"
 #include "../../IO/Messages.h"
 #include "../../IO/UITypes/UIParty.h"
 #include "../../IO/UITypes/UIStatusMessenger.h"
@@ -528,6 +529,10 @@ namespace jrc
         {
             if (auto statusbar = UI::get().get_element<UIStatusbar>())
                 statusbar->send_chatline(message, UIChatbar::WHITE);
+
+            // Additive: surface the same server notice as a DOM toast. Does not
+            // replace the in-canvas chat line above.
+            UiBridge::get().emit_notice(message, "system");
         }
         else if (type == 6)
         {
@@ -538,6 +543,10 @@ namespace jrc
 
             if (auto statusbar = UI::get().get_element<UIStatusbar>())
                 statusbar->send_chatline(message, UIChatbar::WHITE);
+
+            // Additive: surface the same server notice as a DOM toast. Does not
+            // replace the in-canvas chat line above.
+            UiBridge::get().emit_notice(message, "system");
         }
         else if (type == 7)
         {
