@@ -4,6 +4,7 @@ import { Chat } from "./Chat";
 import { StatsWindow } from "../stats/StatsWindow";
 import { InventoryWindow } from "../inventory/InventoryWindow";
 import { EquipmentWindow } from "../equipment/EquipmentWindow";
+import { SkillsWindow } from "../skills/SkillsWindow";
 
 export function Hud() {
   return (
@@ -13,6 +14,7 @@ export function Hud() {
       <StatsWindow />
       <InventoryWindow />
       <EquipmentWindow />
+      <SkillsWindow />
     </>
   );
 }
