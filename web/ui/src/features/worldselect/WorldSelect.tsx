@@ -45,14 +45,14 @@ function WorldItem({ world, selected, onSelect }: WorldItemProps) {
 }
 
 function LoadDot({ load }: { load: string }) {
-  const color =
+  const colorVar =
     load === "low"
-      ? "#22c55e"
+      ? "var(--status-ok)"
       : load === "medium"
-        ? "#f59e0b"
+        ? "var(--status-warn)"
         : load === "high"
-          ? "#ef4444"
-          : "#6b7280";
+          ? "var(--status-error)"
+          : "var(--status-offline)";
   return (
     <span
       style={{
@@ -60,7 +60,7 @@ function LoadDot({ load }: { load: string }) {
         width: 7,
         height: 7,
         borderRadius: "50%",
-        background: color,
+        background: colorVar,
         marginRight: 5,
         verticalAlign: "middle",
       }}
