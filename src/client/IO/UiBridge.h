@@ -32,6 +32,9 @@ namespace jrc
         // Builds and emits the equipped-items payload (item id per equip slot)
         // consumed by the DOM Equipment window. Self-diffs.
         void emit_equipment();
+        // Builds and emits the learned-skills payload (skill id + level +
+        // master level) consumed by the DOM Skills window. Self-diffs.
+        void emit_skills();
         void emit_character(const std::string& name, const std::string& job);
         void emit_chat(const std::string& line, int ctype);
         void emit_pong(int nonce);
@@ -66,6 +69,7 @@ namespace jrc
         // payloads, used to suppress redundant emits.
         std::string inventory_sig_;
         std::string equipment_sig_;
+        std::string skills_sig_;
 
         // Entry-flow selection state (set by selectWorld, used by requestCharlist).
         uint8_t selected_world_ = 0;

@@ -18,6 +18,7 @@
 #include "../Character/Inventory/Inventory.h"
 #include "../Character/Inventory/InventoryType.h"
 #include "../Character/Look/EquipSlot.h"
+#include "../Character/SkillBook.h"
 #include "UITypes/UICharSelect.h"
 #include "UITypes/UILogin.h"
 
@@ -201,6 +202,34 @@ namespace jrc
 
         json j = {
             {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_EQUIPMENT},
+            {"json", payload}
+        };
+        push(j.dump());
+    }
+
+    void UiBridge::emit_skills()
+    {
+        const Skillbook& skills = Stage::get().get_player().get_skills();
+
+        json arr = json::array();
+        for (const Skillbook::LearnedSkill& skill : skills.collect_skills())
+        {
+            arr.push_back({
+                {"skillid", skill.id},
+                {"level", skill.level},
+                {"masterlevel", skill.masterlevel}
+            });
+        }
+
+        std::string payload = arr.dump();
+        if (payload == skills_sig_)
+        {
+            return;
+        }
+        skills_sig_ = payload;
+
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_SKILLS},
             {"json", payload}
         };
         push(j.dump());
@@ -646,6 +675,10 @@ namespace jrc
         // a message when the contents actually change.
         emit_inventory();
         emit_equipment();
+
+        // Learned skills for the DOM Skills window. Self-diffs via an internal
+        // signature, so this only pushes a message when the skill set changes.
+        emit_skills();
     }
 }
 

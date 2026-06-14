@@ -237,6 +237,12 @@ namespace jrc
 
     void UISkillbook::draw(float alpha) const
     {
+#ifdef MS_PLATFORM_WASM
+        // On the WASM build the skill list is rendered by the DOM Skills window
+        // (UiBridge::emit_skills). Keep this element alive for its logic/state
+        // but suppress the in-canvas draw to avoid a duplicate UI.
+        (void)alpha;
+#else
         draw_sprites(alpha);
 
         bookicon.draw(position + Point<int16_t>(12, 85));
@@ -271,6 +277,7 @@ namespace jrc
         draw_buttons(alpha);
 
         slider.draw(position);
+#endif
     }
 
     Button::State UISkillbook::button_pressed(uint16_t id)

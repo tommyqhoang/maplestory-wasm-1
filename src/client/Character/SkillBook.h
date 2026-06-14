@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <map>
+#include <vector>
 
 namespace jrc
 {
@@ -26,6 +27,14 @@ namespace jrc
     class Skillbook
     {
     public:
+        // A learned skill, surfaced for enumeration (e.g. the DOM Skills window).
+        struct LearnedSkill
+        {
+            int32_t id;
+            int32_t level;
+            int32_t masterlevel;
+        };
+
         void set_skill(int32_t id, int32_t level, int32_t masterlevel, int64_t expiration);
 
         bool has_skill(int32_t id) const;
@@ -36,6 +45,9 @@ namespace jrc
         // Return id and level of all passive skills.
         // An ordered map is used so that lower passive skills don't override higher ones.
         std::map<int32_t, int32_t> collect_passives() const;
+
+        // Return id, level and master level of every learned skill, ordered by id.
+        std::vector<LearnedSkill> collect_skills() const;
 
     private:
         struct SkillEntry

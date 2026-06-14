@@ -19,6 +19,8 @@
 
 #include "../Data/SkillData.h"
 
+#include <algorithm>
+
 namespace jrc
 {
     void Skillbook::set_skill(int32_t id, int32_t level, int32_t mlevel, int64_t expire)
@@ -69,5 +71,22 @@ namespace jrc
             }
         }
         return passives;
+    }
+
+    std::vector<Skillbook::LearnedSkill> Skillbook::collect_skills() const
+    {
+        std::vector<LearnedSkill> skills;
+        skills.reserve(skillentries.size());
+        for (auto& iter : skillentries)
+        {
+            skills.push_back(
+                { iter.first, iter.second.level, iter.second.masterlevel });
+        }
+        std::sort(
+            skills.begin(), skills.end(),
+            [](const LearnedSkill& a, const LearnedSkill& b) {
+                return a.id < b.id;
+            });
+        return skills;
     }
 }
