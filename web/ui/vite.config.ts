@@ -19,12 +19,22 @@ export default defineConfig({
   server: { port: 5173, headers: COOP_COEP, proxy },
   preview: { headers: COOP_COEP },
   test: { environment: "jsdom", globals: true },
+  define: {
+    // Required for React and Zod to run correctly in lib/IIFE mode where
+    // Vite does not automatically inject process.env.NODE_ENV.
+    "process.env.NODE_ENV": JSON.stringify("production"),
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    lib: {
+      entry: "src/main.tsx",
+      name: "MapleUI",
+      fileName: () => "maple-ui.js",
+      formats: ["iife"],
+    },
     rollupOptions: {
       output: {
-        entryFileNames: "maple-ui.js",
         assetFileNames: "maple-ui.[ext]",
         chunkFileNames: "chunks/[name]-[hash].js",
       },
