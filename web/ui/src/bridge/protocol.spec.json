@@ -200,6 +200,11 @@
       "type": "setSfxVolume",
       "dir": "in",
       "fields": [{ "name": "value", "type": "int" }]
+    },
+    {
+      "type": "connection",
+      "dir": "out",
+      "fields": [{ "name": "status", "type": "string" }]
     }
   ]
 }

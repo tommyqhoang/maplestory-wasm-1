@@ -22,8 +22,66 @@ import sys
 import os
 
 
+def parse_allowlist(spec: str):
+    """Parse WS_PROXY_ALLOWED_TARGETS into a list of (host, port_lo, port_hi).
+
+    Entry forms (comma-separated):
+        host             -> any port on that host
+        host:port        -> exact host:port
+        host:lo-hi       -> host with port in [lo, hi]
+    A port of None (host-only entry) matches any port.
+    """
+    entries = []
+    for raw in spec.split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        if ":" not in item:
+            entries.append((item, 1, 65535))
+            continue
+        host, _, port_spec = item.rpartition(":")
+        host = host.strip()
+        port_spec = port_spec.strip()
+        try:
+            if "-" in port_spec:
+                lo_s, hi_s = port_spec.split("-", 1)
+                lo, hi = int(lo_s), int(hi_s)
+            else:
+                lo = hi = int(port_spec)
+        except ValueError:
+            print(f"[Proxy] Ignoring malformed allowlist entry: {item!r}")
+            continue
+        entries.append((host, lo, hi))
+    return entries
+
+
 class MapleStoryProxy:
     """Proxy that forwards data between WebSocket and TCP connections."""
+
+    def __init__(self):
+        # Secure by default: the browser names the TCP target, so an unrestricted
+        # proxy is an open relay (SSRF). Only dial hosts on the allowlist.
+        spec = os.environ.get("WS_PROXY_ALLOWED_TARGETS", "").strip()
+        if spec:
+            self.allowed = parse_allowlist(spec)
+        else:
+            # No explicit policy: permit only the loopback/Docker-host targets the
+            # client is remapped to. Blocks pivots to arbitrary internal/cloud hosts
+            # (e.g. 169.254.169.254). Set WS_PROXY_ALLOWED_TARGETS for production.
+            remap = os.environ.get("WS_PROXY_LOCALHOST_TARGET", "host.docker.internal")
+            self.allowed = parse_allowlist(
+                f"{remap},localhost,127.0.0.1,0.0.0.0"
+            )
+        rendered = ", ".join(
+            h if (lo, hi) == (1, 65535) else f"{h}:{lo}-{hi}"
+            for h, lo, hi in self.allowed
+        )
+        print(f"[Proxy] Allowed TCP targets: {rendered or '(none)'}")
+
+    def is_target_allowed(self, host: str, port: int) -> bool:
+        return any(
+            host == ah and alo <= port <= ahi for ah, alo, ahi in self.allowed
+        )
 
     async def handle_client(self, websocket):
         """Handle a WebSocket client connection."""
@@ -65,7 +123,17 @@ class MapleStoryProxy:
                 print(f"[Error] Invalid target format '{target_str}', expected 'host:port'")
                 await websocket.close()
                 return
-            
+
+            if not (1 <= tcp_port <= 65535):
+                print(f"[Proxy] Rejected out-of-range port: {tcp_port}")
+                await websocket.close()
+                return
+
+            if not self.is_target_allowed(tcp_host, tcp_port):
+                print(f"[Proxy] BLOCKED disallowed target {tcp_host}:{tcp_port} from {client_addr}")
+                await websocket.close()
+                return
+
             print(f"[WebSocket] Client requested connection to {tcp_host}:{tcp_port}")
 
             # Connect to target TCP server

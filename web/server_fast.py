@@ -9,11 +9,27 @@ Run: python web/server_fast.py
 """
 
 import asyncio
+import mimetypes
 import os
 from aiohttp import web
 
 PORT = 8000
 DIRECTORY = os.path.join(os.path.dirname(__file__), "..")
+
+# Explicit overrides where exact typing matters or guesses are unreliable.
+CONTENT_TYPES = {
+    ".html": "text/html",
+    ".js": "application/javascript",
+    ".mjs": "application/javascript",
+    ".wasm": "application/wasm",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".data": "application/octet-stream",
+    ".mem": "application/octet-stream",
+    ".map": "application/json",
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
+}
 
 # Required headers for WASM with SharedArrayBuffer
 CORS_HEADERS = {
@@ -33,10 +49,13 @@ async def handle_request(request: web.Request) -> web.StreamResponse:
         # The client page lives in web/, not the repo root we serve from.
         path = "web/index.html"
     
-    full_path = os.path.normpath(os.path.join(DIRECTORY, path))
-    
-    # Security: prevent directory traversal
-    if not full_path.startswith(os.path.normpath(DIRECTORY)):
+    base = os.path.realpath(DIRECTORY)
+    full_path = os.path.realpath(os.path.join(base, path))
+
+    # Security: prevent directory traversal. A bare startswith() check is unsafe
+    # (a sibling like "<base>-secret" shares the prefix); require full_path to be
+    # base itself or live strictly beneath it. realpath() also blocks symlink escapes.
+    if full_path != base and not full_path.startswith(base + os.sep):
         return web.Response(status=403, text="Forbidden")
     
     if not os.path.exists(full_path) or os.path.isdir(full_path):
@@ -52,18 +71,11 @@ async def handle_request(request: web.Request) -> web.StreamResponse:
     
     file_size = os.path.getsize(full_path)
     
-    # Determine content type
-    content_type = "application/octet-stream"
-    if full_path.endswith(".html"):
-        content_type = "text/html"
-    elif full_path.endswith(".js"):
-        content_type = "application/javascript"
-    elif full_path.endswith(".wasm"):
-        content_type = "application/wasm"
-    elif full_path.endswith(".css"):
-        content_type = "text/css"
-    elif full_path.endswith(".json"):
-        content_type = "application/json"
+    # Determine content type. WASM/JS need exact types for streaming compilation
+    # and ESM; fall back to the mimetypes table for everything else.
+    content_type = CONTENT_TYPES.get(
+        os.path.splitext(full_path)[1].lower()
+    ) or mimetypes.guess_type(full_path)[0] or "application/octet-stream"
     
     # Check for Range header
     range_header = request.headers.get("Range")

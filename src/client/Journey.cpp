@@ -136,6 +136,14 @@ namespace jrc
     {
         if (!running())
         {
+            // A dropped game socket halts the loop here, leaving the canvas
+            // frozen on its last frame. Tell the DOM so it can show a disconnect
+            // overlay instead of an unexplained freeze. Other stop causes (user
+            // quit / window closed) leave the socket connected, so they don't.
+            if (!Session::get().is_connected())
+            {
+                UiBridge::get().emit_connection("lost");
+            }
             emscripten_cancel_main_loop();
             Sound::close();
             return;

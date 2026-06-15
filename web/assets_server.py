@@ -47,7 +47,7 @@ class AssetServer:
     def get_file_path(self, filename: str) -> Path:
         """Get full path for a file, searching in common subdirectories."""
         # Prevent directory traversal by only using the name
-        safe_name = Path(filename).name
+        safe_name = Path(str(filename)).name
         
         # Search locations in order
         candidates = [
@@ -119,11 +119,30 @@ class AssetServer:
         fh.seek(start)
         return fh.read(end - start)
 
+    @staticmethod
+    def _valid_filename(value) -> bool:
+        return isinstance(value, str) and value.strip() != ""
+
+    @staticmethod
+    def _as_index(value, default: int = 0) -> int:
+        """Coerce a client-supplied chunk index to a non-negative int."""
+        try:
+            return max(0, int(value))
+        except (TypeError, ValueError):
+            return default
+
     async def handle_message(self, websocket, message: str):
         """Handle an incoming WebSocket message."""
         try:
             data = json.loads(message)
+            if not isinstance(data, dict):
+                await websocket.send(json.dumps({"type": "error", "message": "Invalid message"}))
+                return
             msg_type = data.get("type")
+
+            if msg_type in ("get_size", "get_chunks", "get_chunk") and not self._valid_filename(data.get("file")):
+                await websocket.send(json.dumps({"type": "error", "message": "Missing or invalid 'file'"}))
+                return
 
             if msg_type == "get_size":
                 filename = data.get("file")
@@ -138,9 +157,16 @@ class AssetServer:
 
             elif msg_type == "get_chunks":
                 filename = data.get("file")
-                start_chunk = data.get("start", 0)
-                end_chunk = data.get("end", start_chunk)
-                chunk_size = max(MIN_CHUNK_SIZE, min(int(data.get("chunk_size", 512 * 1024)), MAX_CHUNK_SIZE))
+                start_chunk = self._as_index(data.get("start", 0))
+                end_chunk = max(start_chunk, self._as_index(data.get("end", start_chunk), start_chunk))
+                chunk_size = max(MIN_CHUNK_SIZE, min(self._as_index(data.get("chunk_size", 512 * 1024), 512 * 1024), MAX_CHUNK_SIZE))
+
+                # Clamp the range to the file's actual chunk count so a bogus 'end'
+                # can't make us loop over a billion empty chunks (DoS).
+                file_size = self.get_file_size(filename)
+                if file_size > 0:
+                    last_chunk = (file_size - 1) // chunk_size
+                    end_chunk = min(end_chunk, last_chunk)
 
                 # Send all requested chunks as BINARY frames
                 # Format: [4 bytes: chunk index LE] [1 byte: filename len] [filename] [data]
@@ -168,9 +194,9 @@ class AssetServer:
             elif msg_type == "get_chunk":
                 # Single chunk request
                 filename = data.get("file")
-                chunk_idx = data.get("index", 0)
-                chunk_size = max(MIN_CHUNK_SIZE, min(int(data.get("chunk_size", 512 * 1024)), MAX_CHUNK_SIZE))
-                
+                chunk_idx = self._as_index(data.get("index", 0))
+                chunk_size = max(MIN_CHUNK_SIZE, min(self._as_index(data.get("chunk_size", 512 * 1024), 512 * 1024), MAX_CHUNK_SIZE))
+
                 chunk_data = self.read_chunk(filename, chunk_idx, chunk_size)
                 if chunk_data:
                     # Send as binary frame

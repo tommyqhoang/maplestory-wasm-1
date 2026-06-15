@@ -357,6 +357,11 @@ export class MapleBridge {
         }
         break;
       }
+      case "connection":
+        // The engine's native loop halts on a dropped game socket; surface it
+        // so the player isn't left on a frozen frame with no explanation.
+        s.setConnectionLost(msg.status === "lost");
+        break;
       case "notice": {
         let parsed: unknown;
         try {

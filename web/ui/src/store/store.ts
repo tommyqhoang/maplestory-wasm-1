@@ -64,6 +64,8 @@ interface GameState {
   sfxMuted: boolean;
   supersample: number;
   showFps: boolean;
+  connectionLost: boolean;
+  setConnectionLost: (lost: boolean) => void;
   setScene: (name: string) => void;
   setStats: (s: Stats) => void;
   setPong: (nonce: number) => void;
@@ -190,6 +192,8 @@ export const useGame = create<GameState>((set) => ({
   // Higher values add edge anti-aliasing at the cost of sharpness and frames.
   supersample: loadClampedInt("maple.supersample", 1, 1, 4),
   showFps: loadBool("maple.showFps", false),
+  connectionLost: false,
+  setConnectionLost: (connectionLost) => set({ connectionLost }),
   setScene: (name) => set({ scene: name }),
   setStats: (stats) => set({ stats }),
   setPong: (nonce) => set({ lastPong: nonce }),

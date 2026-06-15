@@ -5,17 +5,10 @@ import { Login } from "../features/login/Login";
 import { WorldSelect } from "../features/worldselect/WorldSelect";
 import { CharSelect } from "../features/charselect/CharSelect";
 import { EntryBackdrop } from "../features/entry/EntryBackdrop";
+import { Disconnected } from "../features/system/Disconnected";
 import "../features/entry/entry.css";
 
-export function App() {
-  const scene = useGame((s) => s.scene);
-
-  // Expose scene on body so CSS can show/hide the game canvas (#container).
-  // We use visibility:hidden (not display:none) to avoid disturbing the WASM engine.
-  useEffect(() => {
-    document.body.dataset.scene = scene;
-  }, [scene]);
-
+function Scene({ scene }: { scene: string }) {
   if (scene === "ingame") {
     return <Hud />;
   }
@@ -40,6 +33,24 @@ export function App() {
         <span>Connecting…</span>
       </div>
     </EntryBackdrop>
+  );
+}
+
+export function App() {
+  const scene = useGame((s) => s.scene);
+  const connectionLost = useGame((s) => s.connectionLost);
+
+  // Expose scene on body so CSS can show/hide the game canvas (#container).
+  // We use visibility:hidden (not display:none) to avoid disturbing the WASM engine.
+  useEffect(() => {
+    document.body.dataset.scene = scene;
+  }, [scene]);
+
+  return (
+    <>
+      <Scene scene={scene} />
+      {connectionLost && <Disconnected />}
+    </>
   );
 }
 

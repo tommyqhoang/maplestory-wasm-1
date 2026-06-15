@@ -322,6 +322,15 @@ namespace jrc
         push(j.dump());
     }
 
+    void UiBridge::emit_connection(const std::string& status)
+    {
+        json j = {
+            {"v", bridge::PROTOCOL_VERSION}, {"t", bridge::MSG_CONNECTION},
+            {"status", status}
+        };
+        push(j.dump());
+    }
+
     void UiBridge::emit_login_result(int ok, const std::string& reason)
     {
         json j = {

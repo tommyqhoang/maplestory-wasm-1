@@ -48,6 +48,10 @@ namespace jrc
         void emit_character(const std::string& name, const std::string& job);
         void emit_chat(const std::string& line, int ctype);
         void emit_pong(int nonce);
+        // Notifies the DOM that the game connection changed (status "lost" when
+        // the socket drops). Lets the UI surface a disconnect overlay since the
+        // native loop halts on a dropped socket.
+        void emit_connection(const std::string& status);
 
         // Entry-flow (login / world select / character select) emits.
         void emit_login_result(int ok, const std::string& reason);

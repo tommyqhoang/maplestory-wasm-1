@@ -32,6 +32,11 @@ services:
     environment:
       - IS_DOCKER=true
       - WS_PROXY_LOCALHOST_TARGET=host.docker.internal
+      # SECURITY: the browser names the TCP target, so restrict what the proxy may
+      # dial. Unset = allow only loopback/Docker-host (safe default). For a public
+      # deployment set this to the game server explicitly, e.g.
+      # WS_PROXY_ALLOWED_TARGETS=host.docker.internal:8484,host.docker.internal:7575-7600
+      # - WS_PROXY_ALLOWED_TARGETS=host.docker.internal
     ports:
       - "8080:8080"
     volumes:

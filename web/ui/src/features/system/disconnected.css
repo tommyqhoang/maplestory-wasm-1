@@ -1,0 +1,26 @@
+/* Full-screen modal shown over any scene (incl. the in-game HUD) when the
+   game connection drops. Sits above all UI surfaces. */
+.disconnect-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+  animation: disconnect-fade-in 160ms ease-out;
+}
+
+.disconnect-card {
+  text-align: center;
+}
+
+@keyframes disconnect-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

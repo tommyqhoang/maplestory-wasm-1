@@ -339,6 +339,15 @@ export const SetSfxVolumeCmd = z.object({
   value: z.number().int(),
 });
 
+// Engine -> UI connection status. The engine emits status:"lost" when the game
+// socket drops (the native loop halts), so the DOM can surface it instead of
+// leaving the player staring at a frozen frame.
+export const ConnectionMsg = z.object({
+  ...base,
+  t: z.literal("connection"),
+  status: z.string(),
+});
+
 export const InboundMsg = z.discriminatedUnion("t", [
   PongMsg,
   SceneMsg,
@@ -357,6 +366,7 @@ export const InboundMsg = z.discriminatedUnion("t", [
   ShopMsg,
   BuffsMsg,
   NoticeMsg,
+  ConnectionMsg,
 ]);
 export const OutboundCmd = z.discriminatedUnion("t", [
   PingMsg,

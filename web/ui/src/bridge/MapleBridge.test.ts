@@ -25,6 +25,20 @@ test("recv routes a valid stats message into the store", () => {
   expect(useGame.getState().stats.level).toBe(3);
 });
 
+test("recv connection status:lost sets store.connectionLost = true", () => {
+  const { bridge } = makeBridge();
+  useGame.setState({ connectionLost: false });
+  bridge.recv(JSON.stringify({ v: 1, t: "connection", status: "lost" }));
+  expect(useGame.getState().connectionLost).toBe(true);
+});
+
+test("recv connection status other than lost clears connectionLost", () => {
+  const { bridge } = makeBridge();
+  useGame.setState({ connectionLost: true });
+  bridge.recv(JSON.stringify({ v: 1, t: "connection", status: "connected" }));
+  expect(useGame.getState().connectionLost).toBe(false);
+});
+
 test("recv routes scene", () => {
   const { bridge } = makeBridge();
   bridge.recv(JSON.stringify({ v: 1, t: "scene", name: "charselect" }));

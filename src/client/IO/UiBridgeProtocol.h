@@ -34,4 +34,5 @@ constexpr const char* MSG_NOTICE = "notice";
 constexpr const char* MSG_USEITEM = "useItem";
 constexpr const char* MSG_SETBGMVOLUME = "setBgmVolume";
 constexpr const char* MSG_SETSFXVOLUME = "setSfxVolume";
+constexpr const char* MSG_CONNECTION = "connection";
 }}
